@@ -1,0 +1,158 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+main {
+  min-height: 80vh;
+}
+
+.rating span {
+  margin: 0.1rem;
+}
+
+.rating svg {
+  color: #f8e825;
+}
+
+.rating-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding-left: 0.5rem;
+}
+
+.product-title {
+  height: 2.5em; /* Set a fixed height */
+  overflow: hidden; /* Hide overflow content */
+  text-overflow: ellipsis; /* Add ellipsis for long text */
+  white-space: nowrap; /* Prevent wrapping */
+}
+
+table td,
+table th {
+  text-align: center;
+}
+
+.review {
+  margin-top: 30px;
+}
+
+.review h2 {
+  font-size: 24px;
+  background: #f4f4f4;
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+.review button {
+  margin-top: 10px;
+}
+
+.carousel-caption {
+  position: absolute;
+  width: 100%;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .marquee-wrapper {
+    @apply relative w-max animate-marquee;
+  }
+  .marquee-content {
+    @apply pr-8; /* spacing between repeats */
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 20s linear infinite;
+}
+
+.slide-underline {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 4px;
+}
+
+/* The single underline, always visible */
+.slide-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: black;
+
+  /* Start visible */
+  transform: scaleX(1);
+  transform-origin: left; /* start shrinking from the left */
+  transition: transform 0.3s ease;
+}
+
+/* On hover, shrink toward the right (slide out) */
+.slide-underline:hover::after {
+  transform: scaleX(0);
+  transform-origin: right; /* so it shrinks toward the right */
+}
+/* ✅ Quill toolbar fixes */
+.ql-toolbar.ql-snow .ql-picker {
+  font-size: 14px; /* smaller font */
+}
+
+.ql-toolbar.ql-snow .ql-picker-label::before,
+.ql-toolbar.ql-snow .ql-picker-item::before {
+  font-size: 14px; /* smaller text in dropdowns */
+}
+
+.ql-toolbar.ql-snow .ql-picker.ql-header .ql-picker-label::after,
+.ql-toolbar.ql-snow .ql-picker.ql-header .ql-picker-options .ql-picker-item::after,
+.ql-toolbar.ql-snow .ql-picker.ql-list .ql-picker-label::after,
+.ql-toolbar.ql-snow .ql-picker.ql-list .ql-picker-options .ql-picker-item::after {
+  border-top: 4px solid #444; /* make the arrow smaller and subtle */
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  width: 0;
+  height: 0;
+  top: 50%;
+  margin-top: -2px;
+}
+
+/* Optional: tighten up toolbar button padding */
+.ql-toolbar.ql-snow button,
+.ql-toolbar.ql-snow .ql-picker-label {
+  padding: 4px 6px;
+}
+
+/* Optional: make toolbar height smaller */
+.ql-toolbar.ql-snow {
+  border-radius: 6px;
+  padding: 6px;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
