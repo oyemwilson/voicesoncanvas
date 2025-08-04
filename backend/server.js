@@ -22,11 +22,28 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-// Enable CORS for frontend (React)
-app.use(cors({
-  origin: 'http://localhost:3000',
+
+
+// Define your allowed origins in an array
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://voicesoncanvas.onrender.com',
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Check if the origin of the request is in our allowedOrigins array
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-}));
+};
+
+// Use the cors middleware with the custom options
+app.use(cors(corsOptions));
 
 
 app.use('/api/products', productRoutes);
