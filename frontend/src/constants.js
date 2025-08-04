@@ -2,7 +2,7 @@
 //   process.env.NODE_ENV === 'develeopment' ? 'http://localhost:5000' : '';
 // src/utils/api.js
 export const BASE_URL =
-  process.env.BACKEND_URL
+ 'https://voicesoncanvas.onrender.com'
 
 export const PRODUCTS_URL = '/api/products';
 export const USERS_URL = '/api/users';
