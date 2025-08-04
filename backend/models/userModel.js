@@ -48,31 +48,31 @@ const userSchema = mongoose.Schema(
     // Email verification OTP fields
     otp: {
       type: String,
-      index: true, // Index for faster queries
+
     },
     otpExpiry: {
       type: Date,
-      index: true, // Index for faster queries
+ 
     },
 
     // Password reset OTP fields
     passwordResetOTP: {
       type: String,
-      index: true, // Index for faster queries
+
     },
     passwordResetOTPExpiry: {
       type: Date,
-      index: true, // Index for faster queries
+
     },
 
     // Password reset token fields (generated after OTP verification)
     passwordResetToken: {
       type: String,
-      index: true, // Index for faster queries
+
     },
     passwordResetTokenExpiry: {
       type: Date,
-      index: true, // Index for faster queries
+
     },
     isFeaturedArtist: {
       type: Boolean,
@@ -179,7 +179,7 @@ const userSchema = mongoose.Schema(
 );
 
 // Indexes for better performance
-userSchema.index({ email: 1 });
+
 userSchema.index({ createdAt: -1 });
 userSchema.index({ isEmailVerified: 1 });
 userSchema.index({ isActive: 1 });

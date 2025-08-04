@@ -3,7 +3,7 @@ import generateToken from '../utils/generateToken.js';
 import User from '../models/userModel.js';
 import Product from '../models/productModel.js';
 import crypto from 'crypto';
-import { sendEmail, sendTemplateEmail, sendOTPEmail, sendSellerEmail } from '../utils/sendEmail.js';
+import {  sendTemplateEmail, sendOTPEmail, sendNotificationEmail  } from '../utils/sendEmail.js';
 
 // @desc    Auth user & get token
 // @route   POST /api/users/auth
@@ -13,7 +13,9 @@ const authUser = asyncHandler(async (req, res) => {
 
   const user = await User.findOne({ email });
 
-  if (user && (await user.matchPassword(password))) {
+  if (user && (await user.matchPassword(password)))
+     {
+      
     // Check if email is verified
     if (!user.isEmailVerified) {
       res.status(401);
@@ -34,6 +36,7 @@ const authUser = asyncHandler(async (req, res) => {
       isEmailVerified: user.isEmailVerified,
       isSeller: user.isSeller,
       sellerApproved: user.sellerApproved, 
+      
     });
   } else {
     res.status(401);
@@ -71,9 +74,18 @@ const registerUser = asyncHandler(async (req, res) => {
     otp: otp,
     otpExpiry: otpExpiry,
     isEmailVerified: false,
+    
   });
+    if (!user) {
+    res.status(400)
+    throw new Error('Invalid user data')
+  }
+
+  // Generate JWT
+ const token = generateToken(res, user._id);
 
   if (user) {
+
     // Send verification email using the new email system
     try {
       await sendOTPEmail({
@@ -90,6 +102,7 @@ const registerUser = asyncHandler(async (req, res) => {
         isAdmin: user.isAdmin,
         isEmailVerified: user.isEmailVerified,
         message: 'User registered successfully. Please check your email for verification OTP.',
+        // token
       });
     } catch (error) {
       console.error('Email sending failed:', error);
@@ -170,7 +183,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
     await sendTemplateEmail({
       to: user.email,
       templateName: 'welcomeEmail',
-      templateData: user.name
+      templateData: { name: user.name }
     });
   } catch (error) {
     console.error('Welcome email failed:', error);
@@ -414,7 +427,7 @@ const resetPassword = asyncHandler(async (req, res) => {
     await sendTemplateEmail({
       to: user.email,
       templateName: 'passwordChanged',
-      templateData: user.name
+       templateData: { name: user.name }
     });
   } catch (error) {
     console.error('Password changed notification failed:', error);
@@ -766,53 +779,69 @@ const removeFromWishlist = asyncHandler(async (req, res) => {
 // @route PUT /api/users/request-seller
 // @access Private
 const requestSeller = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id)
   if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(404).json({ message: 'User not found' })
   }
 
   // mark user as seller-pending
-  user.isSeller = true;
-  user.sellerApproved = false;
-  await user.save();
+  user.isSeller       = true
+  user.sellerApproved = false
+  await user.save()
 
   // fetch Admins from DB
-  let admins = await User.find({ isAdmin: true }).select('email name');
+  let admins = await User.find({ isAdmin: true }).select('email name')
 
   // fallback to single ADMIN_EMAIL if no admins in DB
   if (!admins.length && process.env.ADMIN_EMAIL) {
     admins = [{
       email: process.env.ADMIN_EMAIL,
-      name: process.env.ADMIN_NAME || 'Admin'
-    }];
-    console.warn('⚠️ No admins in DB — falling back to ADMIN_EMAIL');
+      name:  process.env.ADMIN_NAME || 'Admin'
+    }]
+    console.warn('⚠️ No admins in DB — falling back to ADMIN_EMAIL')
   }
 
   if (!admins.length) {
-    console.error('❌ No admins found and no ADMIN_EMAIL configured');
-    return res.json({ message: 'Your request has been submitted.' });
+    console.error('❌ No admins found and no ADMIN_EMAIL configured')
+    return res.json({ message: 'Your request has been submitted.' })
   }
 
-  // notify each admin
+  // 1) notify each admin
   await Promise.all(admins.map(async admin => {
-    console.log(`📨 About to email admin ${admin.email}`);
     try {
-      await sendSellerEmail({
+      await sendNotificationEmail({
         to: admin.email,
-        type: 'request',
-        userData: { name: user.name, email: user.email },
-        adminData: { name: admin.name }
-      });
-      console.log(`✅ Email sent to admin ${admin.email}`);
+        type: 'sellerApprovalRequest',
+        orderData: {
+          userName:  user.name,
+          userEmail: user.email,
+          adminName: admin.name
+        }
+      })
+      console.log(`✅ Email sent to admin ${admin.email}`)
     } catch (err) {
-      console.error(`❌ Failed to email admin ${admin.email}:`, err);
+      console.error(`❌ Failed to email admin ${admin.email}:`, err)
     }
-  }));
+  }))
+
+  // 2) notify the user that their request is processing
+  try {
+    await sendNotificationEmail({
+      to: user.email,
+      type: 'sellerRequestProcessing',
+      orderData: { userName: user.name }
+    })
+    console.log(`✅ Processing email sent to user ${user.email}`)
+  } catch (err) {
+    console.error(`❌ Failed to email user ${user.email}:`, err)
+  }
 
   res.json({
     message: 'Your request has been submitted. Admins have been notified.',
-  });
-});
+  })
+})
+
+
 
 // @desc Approve seller
 // @route PUT /api/users/:id/approve-seller
@@ -836,11 +865,11 @@ const approveSeller = asyncHandler(async (req, res) => {
   // Only send email if user just became an approved seller
   if (!wasSellerBefore) {
     try {
-      await sendSellerEmail({
-        to: user.email,
-        type: 'approved',
-        userData: { name: user.name }
-      });
+await sendTemplateEmail({
+   to: user.email,
+   templateName: 'sellerApproved',      // matches emailTemplates.sellerApproved
+   templateData: { name: user.name }    // matches that factory’s signature
+ });
       console.log(`✅ Seller approval email sent to ${user.email}`);
     } catch (err) {
       console.error('❌ Error sending seller approval email:', err);
@@ -853,7 +882,7 @@ const approveSeller = asyncHandler(async (req, res) => {
 // @desc    Decline a seller request
 // @route   DELETE /api/users/seller-requests/:id
 // @access  Admin
-export const declineSeller = asyncHandler(async (req, res) => {
+const declineSeller = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
 
   if (!user) {
@@ -861,14 +890,29 @@ export const declineSeller = asyncHandler(async (req, res) => {
     throw new Error('User not found');
   }
 
-  // clear any pending seller‐request flags
+  // 1) clear any pending seller‐request flags
   user.sellerRequested = false;
   user.isSeller = false;
   user.sellerApproved = false;
   await user.save();
 
+  // 2) notify the user that their request was declined
+  try {
+await sendNotificationEmail({
+  to: user.email,
+  type: 'sellerDeclined',
+  orderData: { userName: user.name }
+});
+
+    console.log(`✅ Decline email sent to ${user.email}`);
+  } catch (err) {
+    console.error(`❌ Failed to send decline email to ${user.email}:`, err);
+  }
+
+  // 3) respond to the client
   res.json({ message: 'Seller request declined' });
 });
+
 
 // @desc Toggle featured artist status
 // @route PUT /api/users/:id/feature-artist
@@ -966,6 +1010,7 @@ export {
   removeFromWishlist,
   requestSeller,
   approveSeller,
+  declineSeller,
   toggleFeaturedArtist,
   getFeaturedArtists,
   getMyProducts,

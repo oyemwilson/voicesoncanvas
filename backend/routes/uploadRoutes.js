@@ -4,7 +4,7 @@ import multer from 'multer';
 import asyncHandler from '../middleware/asyncHandler.js';   // ✅ ADD THIS LINE
 import { protect } from '../middleware/authMiddleware.js';
 import User from '../models/userModel.js';                  // ✅ also make sure you import your User model
-import { sendSellerEmail } from '../utils/sendEmail.js';
+import { sendNotificationEmail} from '../utils/sendEmail.js';
 
 
 const router = express.Router();
@@ -88,48 +88,65 @@ router.post(
       throw new Error('User not found');
     }
 
-    // 1️⃣  Save artist profile and set pending flags
+    // 1️⃣ Save artist profile and set pending flags
     user.artistProfile = {
       bio,
       artistStatement,
       location,
       photo: `/uploads/${req.file.filename}`,
     };
-    user.isSeller = true;          // pending seller
+    user.isSeller       = true;
     user.sellerApproved = false;
-    // user.sellerRequested = true;   // helps block duplicates
     await user.save();
 
-    // 2️⃣  Fetch admins
+    // 2️⃣ Fetch admins
     let admins = await User.find({ isAdmin: true }).select('email name');
     if (!admins.length && process.env.ADMIN_EMAIL) {
       admins = [{ email: process.env.ADMIN_EMAIL, name: process.env.ADMIN_NAME || 'Admin' }];
-      console.warn('⚠️  No admins in DB — falling back to ADMIN_EMAIL');
+      console.warn('⚠️ No admins in DB — falling back to ADMIN_EMAIL');
     }
     if (!admins.length) {
-      console.error('❌  No admins found and no ADMIN_EMAIL configured');
+      console.error('❌ No admins found and no ADMIN_EMAIL configured');
       return res.json({ message: 'Seller request saved, but no admin can be notified.' });
     }
 
-    // 3️⃣  Notify each admin
+    // 3️⃣ Notify each admin
     await Promise.all(
       admins.map(async (admin) => {
-        console.log(`📨  Emailing admin ${admin.email}`);
+        console.log(`📨 Emailing admin ${admin.email}`);
         try {
-          await sendSellerEmail({
+          await sendNotificationEmail({
             to: admin.email,
-            type: 'request',
-            userData: { name: user.name, email: user.email },
-            adminData: { name: admin.name },
+            type: 'sellerApprovalRequest',    // must match your template key
+            orderData: {
+              userName:  user.name,
+              userEmail: user.email,
+              adminName: admin.name,
+            },
           });
-          console.log(`✅  Email sent to ${admin.email}`);
+          console.log(`✅ Email sent to ${admin.email}`);
         } catch (err) {
-          console.error(`❌  Failed to email ${admin.email}:`, err.message || err);
+          console.error(`❌ Failed to email ${admin.email}:`, err.message || err);
         }
       })
     );
 
-    res.json({ message: 'Seller request submitted successfully. Admins have been notified.' });
+    // 4️⃣ Notify the user that their request is processing
+    try {
+      await sendNotificationEmail({
+        to: user.email,
+        type: 'sellerRequestProcessing',   // must match your template key
+        orderData: { userName: user.name },
+      });
+      console.log(`✅ Processing email sent to user ${user.email}`);
+    } catch (err) {
+      console.error(`❌ Failed to email user ${user.email}:`, err.message || err);
+    }
+
+    // 5️⃣ Final response
+    res.json({
+      message: 'Seller request submitted successfully. Admins have been notified.',
+    });
   })
 );
 

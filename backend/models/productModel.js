@@ -57,7 +57,7 @@ const productSchema = mongoose.Schema(
       ],
       default: 'Other',
     },
-    collection: { type: String },
+    collectionName: { type: String },
 
     // Media
     image: { type: String, required: true },
@@ -67,6 +67,7 @@ const productSchema = mongoose.Schema(
     type: {
       type: String,
   enum: [
+    'Original',
     'Original Artwork',
     'Limited Edition Print',
     'Open Edition Print',

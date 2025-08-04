@@ -1,399 +1,426 @@
-import { useState } from 'react';
-import { useSelector } from 'react-redux';
-import { toast } from 'react-toastify';
+import { useState } from 'react'
+import { useSelector } from 'react-redux'
+import { toast } from 'react-toastify'
 import {
   useCreateProductMutation,
   useUploadProductImageMutation,
-} from '../slices/productsApiSlice';
+} from '../slices/productsApiSlice'
 
 const UploadArtScreen = () => {
-  const { userInfo } = useSelector((state) => state.auth);
+  const { userInfo } = useSelector((state) => state.auth)
 
-  const [createProduct, { isLoading: creating }] = useCreateProductMutation();
-  const [uploadProductImage, { isLoading: uploading }] = useUploadProductImageMutation();
+  const [createProduct, { isLoading: creating }] = useCreateProductMutation()
+  const [uploadProductImage, { isLoading: uploading }] =
+    useUploadProductImageMutation()
 
-  // Form states - all required fields
-  const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [countInStock, setCountInStock] = useState('');
-  const [medium, setMedium] = useState('');
-  const [style, setStyle] = useState('');
-  const [type, setType] = useState('');
-  const [images, setImages] = useState([]);
-  
-  // Additional fields
-  const [brand, setBrand] = useState('');
-  const [tags, setTags] = useState('');
-  const [specifications, setSpecifications] = useState('');
-  const [weight, setWeight] = useState('');
-  const [dimensions, setDimensions] = useState('');
-  const [sku, setSku] = useState('');
-  const [metaTitle, setMetaTitle] = useState('');
+  // Basic info
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+
+  // Classification
+  const [category, setCategory] = useState('')
+  const [medium, setMedium] = useState('')
+  const [style, setStyle] = useState('')
+  const [type, setType] = useState('')
+
+  // Pricing & stock
+  const [price, setPrice] = useState('')
+  const [salePrice, setSalePrice] = useState('')
+  const [countInStock, setCountInStock] = useState('')
+
+  // Images
+  const [images, setImages] = useState([])
+
+  // Extras
+  const [brand, setBrand] = useState('')
+  const [tags, setTags] = useState('')
+  const [specifications, setSpecifications] = useState('')
+  const [weight, setWeight] = useState('')
+  const [metaTitle, setMetaTitle] = useState('')
+  const [metaDescription, setMetaDescription] = useState('')
+
+  // Dimensions broken out
+  const [length, setLength] = useState('')
+  const [width, setWidth] = useState('')
+  const [height, setHeight] = useState('')
 
   const handleImageSelect = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    if (selectedFiles.length === 0) {
-      toast.error('Please select at least one image.');
-      return;
+    const files = Array.from(e.target.files)
+    if (!files.length) {
+      return toast.error('Please select at least one image.')
     }
-    setImages(selectedFiles);
-  };
+    setImages(files)
+  }
 
-  const removeImage = (idx) => {
-    setImages((prev) => prev.filter((_, i) => i !== idx));
-  };
+  const removeImage = (idx) =>
+    setImages((prev) => prev.filter((_, i) => i !== idx))
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
 
-    if (!userInfo) return toast.error('Please log in first.');
-    if (!userInfo.isSeller) return toast.error('Only approved sellers can upload art.');
-    if (images.length === 0) return toast.error('Please select at least one image.');
+    // Basic validation
+    if (!userInfo) return toast.error('Please log in first.')
+    if (!userInfo.isSeller)
+      return toast.error('Only approved sellers can upload art.')
+    if (!name.trim()) return toast.error('Art Name is required.')
+    if (!description.trim()) return toast.error('Description is required.')
+    if (!category) return toast.error('Category is required.')
+    if (!medium) return toast.error('Medium is required.')
+    if (!style) return toast.error('Style is required.')
+    if (!type) return toast.error('Product Type is required.')
+    if (!price || isNaN(price)) return toast.error('Valid price is required.')
+    if (!countInStock || isNaN(countInStock))
+      return toast.error('Valid quantity is required.')
+    if (!images.length) return toast.error('Please select at least one image.')
 
     try {
-      // Upload all images
-      const uploadedUrls = [];
-      for (const img of images) {
-        const fd = new FormData();
-        fd.append('image', img);
-        const res = await uploadProductImage(fd).unwrap();
-        uploadedUrls.push(res.image);
+      // 1️⃣ Upload images
+      const uploaded = []
+      for (const file of images) {
+        const fd = new FormData()
+        fd.append('image', file)
+        const { image } = await uploadProductImage(fd).unwrap()
+        uploaded.push(image)
       }
 
-      // Build payload with all fields
+      // 2️⃣ Build payload
       const payload = {
         name: name.trim(),
-        price: parseFloat(price),
         description: description.trim(),
-        image: uploadedUrls[0], // Main image
-        images: uploadedUrls.slice(1), // Additional images
-        brand: brand.trim(),
         category,
-        countInStock: parseInt(countInStock),
-        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        specifications: specifications.trim(),
-        weight: weight ? parseFloat(weight) : null,
-        dimensions: dimensions.trim(),
-        sku: sku.trim(),
-        metaTitle: metaTitle.trim(),
         medium,
         style,
         type,
-      };
+        price: parseFloat(price),
+        salePrice: salePrice ? parseFloat(salePrice) : null,
+        countInStock: parseInt(countInStock, 10),
+        image: uploaded[0],
+        images: uploaded.slice(1),
+        brand: brand.trim() || undefined,
+        tags: tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
+        specifications: specifications
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
+        weight: weight ? parseFloat(weight) : null,
+        dimensions: {
+          length: length ? parseFloat(length) : undefined,
+          width: width ? parseFloat(width) : undefined,
+          height: height ? parseFloat(height) : undefined,
+        },
+        sku: undefined, // if you want sku add state & bind here
+        metaTitle: metaTitle.trim() || undefined,
+        metaDescription: metaDescription.trim() || undefined,
+        isFeaturedCollection: false, // or add a toggle if you like
+      }
 
-      console.log('=== UPLOAD PAYLOAD ===');
-      console.log(JSON.stringify(payload, null, 2));
+      console.log('✅ Payload:', payload)
+if (!payload.sku?.trim()) {
+  delete payload.sku
+}
+      // 3️⃣ Send to the API
+      await createProduct(payload).unwrap()
+      toast.success('Art uploaded successfully!')
 
-      const result = await createProduct(payload).unwrap();
-      console.log('Success result:', result);
-      
-      toast.success('Art uploaded successfully!');
-
-      // Reset form
-      setName('');
-      setPrice('');
-      setDescription('');
-      setCategory('');
-      setCountInStock('');
-      setMedium('');
-      setStyle('');
-      setType('');
-      setImages([]);
-      setBrand('');
-      setTags('');
-      setSpecifications('');
-      setWeight('');
-      setDimensions('');
-      setSku('');
-      setMetaTitle('');
-      document.getElementById('imageInput').value = '';
-      
+      // 4️⃣ Reset form
+      setName('')
+      setDescription('')
+      setCategory('')
+      setMedium('')
+      setStyle('')
+      setType('')
+      setPrice('')
+      setSalePrice('')
+      setCountInStock('')
+      setBrand('')
+      setTags('')
+      setSpecifications('')
+      setWeight('')
+      setMetaTitle('')
+      setMetaDescription('')
+      setLength('')
+      setWidth('')
+      setHeight('')
+      setImages([])
+      document.getElementById('imageInput').value = ''
     } catch (err) {
-      console.error('=== UPLOAD ERROR ===');
-      console.error('Full error:', err);
-      console.error('Error data:', err?.data);
-      console.error('Error message:', err?.data?.message);
-      
-      toast.error(err?.data?.message || err.error || 'Upload failed.');
+      console.error(err)
+      toast.error(err?.data?.message || err.error || 'Upload failed.')
     }
-  };
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-8">Upload Your Art</h1>
-
       <form onSubmit={handleSubmit} className="space-y-6">
-        
-        {/* Basic Information */}
+        {/* Basic Info */}
         <div className="bg-gray-50 p-4 rounded-lg">
-          <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
-          <div className="space-y-4">
-            <input
-              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Art Name *"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-            
-            <textarea
-              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Description *"
-              rows={4}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            />
-
-            {/* <input
-              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Meta Title (for SEO - optional)"
-              value={metaTitle}
-              onChange={(e) => setMetaTitle(e.target.value)}
-            /> */}
-          </div>
+          <h2 className="font-semibold mb-4">Basic Information</h2>
+          <input
+            className="w-full border p-3 rounded mb-3"
+            placeholder="Art Name *"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <textarea
+            className="w-full border p-3 rounded"
+            placeholder="Description *"
+            rows={4}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          />
         </div>
 
-        {/* Categories & Classification */}
+        {/* Classification */}
         <div className="bg-gray-50 p-4 rounded-lg">
-          <h2 className="text-lg font-semibold mb-4">Categories & Classification</h2>
+          <h2 className="font-semibold mb-4">Categories & Classification</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <select
-              className="border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              required
-            >
-              <option value="">Select Category *</option>
-              <option value="Abstract">Abstract</option>
-              <option value="Realism">Realism</option>
-              <option value="Afro-Futurism">Afro-Futurism</option>
-              <option value="Contemporary">Contemporary</option>
-              <option value="Traditional">Traditional</option>
-              <option value="Other">Other</option>
-            </select>
-
-            <select
-              className="border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={medium}
-              onChange={(e) => setMedium(e.target.value)}
-              required
-            >
-              <option value="">Select Medium *</option>
-              <option value="Oil Painting">Oil Painting</option>
-              <option value="Acrylic Painting">Acrylic Painting</option>
-              <option value="Watercolor">Watercolor</option>
-              <option value="Digital Print">Digital Print</option>
-              <option value="Canvas Print">Canvas Print</option>
-              <option value="Sculpture">Sculpture</option>
-              <option value="Mixed Media">Mixed Media</option>
-              <option value="Photography">Photography</option>
-            </select>
-
-            <select
-              className="border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={style}
-              onChange={(e) => setStyle(e.target.value)}
-              required
-            >
-              <option value="">Select Style *</option>
-              <option value="Abstract">Abstract</option>
-              <option value="Realism">Realism</option>
-              <option value="Impressionism">Impressionism</option>
-              <option value="Minimalism">Minimalism</option>
-              <option value="Afro-Futurism">Afro-Futurism</option>
-              <option value="Pop Art">Pop Art</option>
-              <option value="Surrealism">Surrealism</option>
-              <option value="Other">Other</option>
-            </select>
-
-            <select
-              className="border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              required
-            >
-              <option value="">Select Product Type *</option>
-              <option value="Original">Original Artwork</option>
-              <option value="Limited Edition Print">Limited Edition Print</option>
-              <option value="Open Edition Print">Open Edition Print</option>
-              <option value="Digital Download">Digital Download</option>
-              <option value="Sculpture">Sculpture</option>
-              <option value="Mixed-Media">Mixed-Media</option>
-            </select>
+            {[
+              {
+                label: 'Category *',
+                value: category,
+                onChange: (e) => setCategory(e.target.value),
+                options: [
+                  'Abstract',
+                  'Realism',
+                  'Afro-Futurism',
+                  'Contemporary',
+                  'Traditional',
+                  'Other',
+                ],
+              },
+              {
+                label: 'Medium *',
+                value: medium,
+                onChange: (e) => setMedium(e.target.value),
+                options: [
+                  'Oil Painting',
+                  'Acrylic Painting',
+                  'Watercolor',
+                  'Digital Print',
+                  'Canvas Print',
+                  'Sculpture',
+                  'Mixed Media',
+                  'Photography',
+                ],
+              },
+              {
+                label: 'Style *',
+                value: style,
+                onChange: (e) => setStyle(e.target.value),
+                options: [
+                  'Abstract',
+                  'Realism',
+                  'Impressionism',
+                  'Minimalism',
+                  'Afro-Futurism',
+                  'Pop Art',
+                  'Surrealism',
+                  'Other',
+                ],
+              },
+              {
+                label: 'Product Type *',
+                value: type,
+                onChange: (e) => setType(e.target.value),
+                options: [
+                  'Original Artwork',
+                  'Limited Edition Print',
+                  'Open Edition Print',
+                  'Digital Download',
+                  'Sculpture',
+                  'Mixed-Media',
+                ],
+              },
+            ].map(({ label, value, onChange, options }) => (
+              <select
+                key={label}
+                className="border p-3 rounded"
+                value={value}
+                onChange={onChange}
+                required
+              >
+                <option value="">{label}</option>
+                {options.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            ))}
           </div>
         </div>
 
         {/* Images */}
         <div className="bg-gray-50 p-4 rounded-lg">
-          <h2 className="text-lg font-semibold mb-4">Images</h2>
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Upload Images * (first image will be the main display image)
-            </label>
-            <input
-              id="imageInput"
-              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleImageSelect}
-              required
-            />
-            {images.length > 0 && (
-              <div className="mt-3">
-                <p className="text-sm text-gray-600 mb-2">Selected images ({images.length}):</p>
-                <ul className="space-y-2">
-                  {images.map((img, idx) => (
-                    <li key={idx} className="flex justify-between items-center bg-white p-2 rounded border">
-                      <span className="text-sm">
-                        {idx === 0 && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs mr-2">MAIN</span>}
-                        {img.name}
+          <h2 className="font-semibold mb-4">Images *</h2>
+          <input
+            id="imageInput"
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="w-full border p-3 rounded"
+            required
+          />
+          {images.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {images.map((img, i) => (
+                <li
+                  key={i}
+                  className="flex justify-between items-center bg-white p-2 rounded border"
+                >
+                  <span>
+                    {i === 0 && (
+                      <span className="bg-blue-100 text-blue-800 px-2 rounded text-xs mr-2">
+                        MAIN
                       </span>
-                      <button
-                        type="button"
-                        className="text-red-500 hover:text-red-700 px-2 py-1"
-                        onClick={() => removeImage(idx)}
-                      >
-                        ✕
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                    )}
+                    {img.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="text-red-500"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Details */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h2 className="font-semibold mb-4">Product Details</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Price */}
+            <div>
+              <label className="block mb-1">Price (₦) *</label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full border p-2 rounded"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Sale Price */}
+            {/* <div>
+              <label className="block mb-1">Sale Price (₦)</label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full border p-2 rounded"
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+              />
+            </div> */}
+
+            {/* Stock */}
+            <div>
+              <label className="block mb-1">Quantity *</label>
+              <input
+                type="number"
+                className="w-full border p-2 rounded"
+                value={countInStock}
+                onChange={(e) => setCountInStock(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Weight */}
+            <div>
+              <label className="block mb-1">Weight (kg)</label>
+              <input
+                type="number"
+                step="0.1"
+                className="w-full border p-2 rounded"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+              />
+            </div>
+
+            {/* Dimensions */}
+            <div className="md:col-span-2 grid grid-cols-3 gap-2">
+              {['Length', 'Width', 'Height'].map((lab, idx) => {
+                const setters = [setLength, setWidth, setHeight]
+                const vals = [length, width, height]
+                return (
+                  <div key={lab}>
+                    <label className="block mb-1">{lab} (in)</label>
+                    <input
+                      type="number"
+                      className="w-full border p-2 rounded"
+                      value={vals[idx]}
+                      onChange={(e) => setters[idx](e.target.value)}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Brand */}
+            {/* <div className="md:col-span-2">
+              <label className="block mb-1">Tags (comma-sep)</label>
+              <input
+                className="w-full border p-2 rounded"
+                placeholder="abstract, vibrant, oil"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+              />
+            </div> */}
+
+            {/* Specs */}
+            {/* <div className="md:col-span-2">
+              <label className="block mb-1">Specifications (comma-sep)</label>
+              <input
+                className="w-full border p-2 rounded"
+                placeholder="Material: oil, Frame: wood"
+                value={specifications}
+                onChange={(e) => setSpecifications(e.target.value)}
+              />
+            </div> */}
+
+            {/* SEO */}
+            {/* <div className="md:col-span-2">
+              <label className="block mb-1">Meta Title</label>
+              <input
+                className="w-full border p-2 rounded"
+                value={metaTitle}
+                onChange={(e) => setMetaTitle(e.target.value)}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block mb-1">Meta Description</label>
+              <textarea
+                className="w-full border p-2 rounded"
+                rows={2}
+                value={metaDescription}
+                onChange={(e) => setMetaDescription(e.target.value)}
+              />
+            </div> */}
           </div>
         </div>
 
-        {/* Product Details */}
-
-<div className="bg-gray-50 p-6 rounded-lg">
-  <h2 className="text-xl font-bold text-gray-800 mb-6">Product Details</h2>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-
-    {/* Price */}
-    <div>
-      <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
-        Price (₦) *
-      </label>
-      <input
-        id="price"
-        className="w-full border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500"
-        type="number"
-        placeholder="e.g., 50000"
-        value={price}
-        onChange={(e) => setPrice(e.target.value)}
-        required
-      />
-    </div>
-
-    {/* Stock Quantity */}
-    <div>
-      <label htmlFor="countInStock" className="block text-sm font-medium text-gray-700 mb-1">
-        Available Quantity *
-      </label>
-      <input
-        id="countInStock"
-        className="w-full border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500"
-        type="number"
-        placeholder="e.g., 5"
-        value={countInStock}
-        onChange={(e) => setCountInStock(e.target.value)}
-        required
-      />
-    </div>
-
-
-
-    {/* Dimensions */}
-    <div className="md:col-span-2">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Dimensions (inches)
-      </label>
-      <div className="grid grid-cols-3 gap-4">
-        <input
-          className="w-full border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500"
-          type="number"
-          placeholder="Length"
-          // Note: You'll need to update state logic for this, e.g., dimensions.length
-        />
-        <input
-          className="w-full border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500"
-          type="number"
-          placeholder="Width"
-          // Note: You'll need to update state logic for this, e.g., dimensions.width
-        />
-        <input
-          className="w-full border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500"
-          type="number"
-          placeholder="Height"
-          // Note: You'll need to update state logic for this, e.g., dimensions.height
-        />
-      </div>
-    </div>
-    
-    {/* Weight */}
-    <div className="md:col-span-2">
-       <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-1">
-        Weight (kg)
-      </label>
-      <input
-        id="weight"
-        className="w-full border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500"
-        type="number"
-        step="0.1"
-        placeholder="e.g., 1.5"
-        value={weight}
-        onChange={(e) => setWeight(e.target.value)}
-      />
-    </div>
-
-    {/* Tags */}
-    <div className="md:col-span-2">
-      <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
-        Tags
-      </label>
-      <input
-        id="tags"
-        className="w-full border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500"
-        placeholder="e.g., abstract, oil on canvas, vibrant"
-        value={tags}
-        onChange={(e) => setTags(e.target.value)}
-      />
-      <p className="text-xs text-gray-500 mt-1">Separate tags with a comma.</p>
-    </div>
-
-    {/* Specifications */}
-    {/* <div className="md:col-span-2">
-      <label htmlFor="specifications" className="block text-sm font-medium text-gray-700 mb-1">
-        Additional Specifications
-      </label>
-      <textarea
-        id="specifications"
-        className="w-full border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500"
-        placeholder="e.g., Materials: Oil on canvas, Frame: Natural wood"
-        rows={4}
-        value={specifications}
-        onChange={(e) => setSpecifications(e.target.value)}
-      />
-    </div> */}
-  </div>
-</div>
-
-
-        {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           disabled={creating || uploading}
+          className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700 disabled:opacity-50"
         >
-          {creating || uploading ? 'Uploading Artwork...' : 'Upload Artwork'}
+          {creating || uploading ? 'Uploading…' : 'Upload Artwork'}
         </button>
       </form>
     </div>
-  );
-};
+  )
+}
 
-export default UploadArtScreen;
+export default UploadArtScreen

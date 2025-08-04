@@ -342,13 +342,13 @@ const OrderScreen = () => {
               )
             )}
 
-            {/* BUYER RESOLVE */}
+            {/* BUYER RESOLVE
             {isBuyer && hasOpenDispute && (
               <button onClick={handleResolve} disabled={loadingUpdate}
                 className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded">
                 {loadingUpdate ? 'Resolving…' : 'Resolve Dispute'}
               </button>
-            )}
+            )} */}
 
             {/* ADMIN RESOLVE */}
             {isAdmin && hasOpenDispute && (

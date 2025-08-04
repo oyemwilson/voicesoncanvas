@@ -2,8 +2,9 @@ import asyncHandler from '../middleware/asyncHandler.js';
 import Order from '../models/orderModel.js';
 import Product from '../models/productModel.js';
 import { calcPrices } from '../utils/calcPrices.js';
+import User     from '../models/userModel.js'
 import { verifyPayPalPayment, checkIfNewTransaction } from '../utils/paypal.js';
-import { sendNotificationEmail } from '../utils/sendEmail.js'
+import { sendTemplateEmail, sendNotificationEmail } from '../utils/sendEmail.js'
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -11,56 +12,67 @@ import { sendNotificationEmail } from '../utils/sendEmail.js'
 const addOrderItems = asyncHandler(async (req, res) => {
   const { orderItems, shippingAddress, paymentMethod, packagingOption } = req.body
 
-  if (orderItems && orderItems.length === 0) {
-    res.status(400);
-    throw new Error('No order items');
-  } else {
-    // NOTE: here we must assume that the prices from our client are incorrect.
-    // We must only trust the price of the item as it exists in
-    // our DB. This prevents a user paying whatever they want by hacking our client
-    // side code - https://gist.github.com/bushblade/725780e6043eaf59415fbaf6ca7376ff
-
-    // get the ordered items from our database
-    const itemsFromDB = await Product.find({
-      _id: { $in: orderItems.map((x) => x._id) },
-    });
-
-    // map over the order items and use the price from our items from database
-    const dbOrderItems = orderItems.map((itemFromClient) => {
-      const matchingItemFromDB = itemsFromDB.find(
-        (itemFromDB) => itemFromDB._id.toString() === itemFromClient._id
-      );
-      return {
-        ...itemFromClient,
-         seller: matchingItemFromDB.user || matchingItemFromDB.seller,
-        product: itemFromClient._id,
-        price: matchingItemFromDB.price,
-        _id: undefined,
-      };
-    });
-
-    // calculate prices
-    const { itemsPrice, taxPrice, shippingPrice, totalPrice } =
-      calcPrices(dbOrderItems);
-
-    const order = new Order({
-      orderItems: dbOrderItems,
-      user: req.user._id,
-      shippingAddress,
-      paymentMethod,
-      itemsPrice,
-      taxPrice,
-      shippingPrice,
-      totalPrice,
-      packagingOption: packagingOption || 'Standard',
-      orderStatus: 'pending',
-      disputeStatus: 'none',
-    });
-
-    const createdOrder = await order.save();
-    res.status(201).json(createdOrder);
+  if (!orderItems || orderItems.length === 0) {
+    res.status(400)
+    throw new Error('No order items')
   }
-});
+
+  // 1️⃣ Build “trusted” order items from DB prices
+  const itemsFromDB = await Product.find({
+    _id: { $in: orderItems.map(x => x._id) }
+  })
+
+  const dbOrderItems = orderItems.map(item => {
+    const prod = itemsFromDB.find(p => p._id.toString() === item._id)
+    return {
+      ...item,
+      seller: prod.user || prod.seller,     // your seller field
+      product: item._id,
+      price: prod.price,
+      _id: undefined
+    }
+  })
+
+  // 2️⃣ Calculate totals
+  const { itemsPrice, taxPrice, shippingPrice, totalPrice } = calcPrices(dbOrderItems)
+
+  // 3️⃣ Create & save the order
+  const order = new Order({
+    orderItems:     dbOrderItems,
+    user:           req.user._id,
+    shippingAddress,
+    paymentMethod,
+    itemsPrice,
+    taxPrice,
+    shippingPrice,
+    totalPrice,
+    packagingOption: packagingOption || 'Standard',
+    orderStatus:    'pending',
+    disputeStatus:  'none',
+  })
+  const createdOrder = await order.save()
+
+  // 4️⃣ Send confirmation to **buyer**
+  try {
+    const buyer = await User.findById(req.user._id).select('email name');
+   await sendNotificationEmail({
+     to: buyer.email,
+     type: 'paymentReminder',        // <-- new template key
+     orderData: {
+       customerName: buyer.name,
+       orderId:      createdOrder._id.toString()
+     }
+   });
+   console.log(`✅ Payment reminder sent to ${buyer.email}`);
+ } catch (err) {
+   console.error('❌ Failed to send payment reminder:', err);
+ }
+
+
+
+  // 6️⃣ Return the created order
+  res.status(201).json(createdOrder)
+})
 
 // @desc    Get logged in user orders
 // @route   GET /api/orders/myorders
@@ -95,32 +107,32 @@ const getOrderById = asyncHandler(async (req, res) => {
 const updateOrderToPaid = asyncHandler(async (req, res) => {
   const { paymentGateway } = req.body;
 
-  // --- Payment verification for PayPal only ---
+  // 1️⃣ Payment verification (PayPal only)
   if (paymentGateway === 'paypal') {
     const { verified } = await verifyPayPalPayment(req.body.id);
     if (!verified) throw new Error('Payment not verified');
-    const isNewTransaction = await checkIfNewTransaction(Order, req.body.id);
-    if (!isNewTransaction) throw new Error('Transaction used before');
+    const isNewTxn = await checkIfNewTransaction(Order, req.body.id);
+    if (!isNewTxn) throw new Error('Transaction used before');
   }
 
-  // --- Load order ---
+  // 2️⃣ Load order with buyer info
   const order = await Order.findById(req.params.id).populate('user', 'name email');
   if (!order) {
     res.status(404);
     throw new Error('Order not found');
   }
 
-  // --- Mark paid ---
-  order.isPaid = true;
-  order.paidAt = Date.now();
+  // 3️⃣ Mark as paid
+  order.isPaid      = true;
+  order.paidAt      = Date.now();
   order.orderStatus = 'processing';
   order.paymentResult = {
-    id: req.body.id || req.body.reference,
-    status: req.body.status || 'success',
+    id:            req.body.id || req.body.reference,
+    status:        req.body.status || 'success',
     email_address: req.body.payer?.email_address || req.body.email,
   };
 
-  // --- Decrement stock ---
+  // 4️⃣ Decrement stock
   for (const item of order.orderItems) {
     const product = await Product.findById(item.product);
     if (product) {
@@ -129,32 +141,56 @@ const updateOrderToPaid = asyncHandler(async (req, res) => {
     }
   }
 
-  // --- Save the paid order ---
+  // 5️⃣ Save the updated order
   const updatedOrder = await order.save();
 
-  // --- Notify each seller ---
-  const sellerIds = [...new Set(order.orderItems.map((item) => item.seller.toString()))];
-  for (const sellerId of sellerIds) {
-    const sellerUser = await User.findById(sellerId);
-    if (sellerUser?.email) {
-      try {
-        await sendNotificationEmail({
-          to: sellerUser.email,
-          subject: 'Payment Received – Please Ship Your Item',
-          type: 'payment_received',
-          orderData: {
-            orderId: order._id,
-            orderNumber: order._id.toString().slice(-8),
-            totalPrice: order.totalPrice,
-            shippingAddress: order.shippingAddress,
-          },
-        });
-      } catch (err) {
-        console.error(`Failed to send payment notification to seller ${sellerId}:`, err);
+  // 6️⃣ Notify the **buyer** that their payment succeeded
+  try {
+    await sendTemplateEmail({
+      to: updatedOrder.user.email,
+      templateName: 'orderConfirmation',   // reuse your existing Order Confirmation template
+      templateData: {
+        customerName: updatedOrder.user.name,
+        orderId:      updatedOrder._id,
+        total:        updatedOrder.totalPrice,
+        items:        updatedOrder.orderItems.map(i => ({
+          name: i.name,
+          qty:  i.qty,
+          price:i.price
+        }))
       }
-    }
+    });
+    console.log(`✅ Buyer payment confirmation sent to ${updatedOrder.user.email}`);
+  } catch (err) {
+    console.error(`❌ Failed to send buyer payment email:`, err);
   }
 
+  // 7️⃣ Notify each **seller**
+  const sellerIds = [
+    ...new Set(updatedOrder.orderItems.map(i => i.seller.toString()))
+  ];
+
+  await Promise.all(sellerIds.map(async sellerId => {
+    const seller = await User.findById(sellerId).select('name email');
+    if (!seller?.email) return;
+
+    try {
+      await sendNotificationEmail({
+        to: seller.email,
+        type: 'payment_received',   // matches emailTemplates.payment_received
+        orderData: {
+          orderNumber:     updatedOrder._id.toString().slice(-8),
+          totalPrice:      updatedOrder.totalPrice,
+          shippingAddress: updatedOrder.shippingAddress,
+        }
+      });
+      console.log(`✅ Payment notification sent to seller ${seller.email}`);
+    } catch (err) {
+      console.error(`❌ Failed to notify seller ${seller.email}:`, err);
+    }
+  }));
+
+  // 8️⃣ Return the newly updated order
   res.json(updatedOrder);
 });
 
@@ -166,57 +202,61 @@ const updateOrderToPaid = asyncHandler(async (req, res) => {
 // @access  Private (Seller only)
 const updateOrderToShipped = asyncHandler(async (req, res) => {
   const { trackingNumber, carrier, shippingDate } = req.body;
-  const order = await Order.findById(req.params.id).populate('user', 'name email');
 
+  // 1️⃣ Load order + buyer email
+  const order = await Order.findById(req.params.id)
+    .populate('user', 'name email');
   if (!order) {
     res.status(404);
     throw new Error('Order not found');
   }
 
-  // Check if user is the seller (order creator) or admin
+  // 2️⃣ Authorization check
   if (order.user._id.toString() !== req.user._id.toString() && !req.user.isAdmin) {
     res.status(401);
     throw new Error('Not authorized to update this order');
   }
 
+  // 3️⃣ Ensure paid
   if (!order.isPaid) {
     res.status(400);
     throw new Error('Order must be paid before shipping');
   }
 
-  order.isShipped = true;
-  order.shippedAt = shippingDate || Date.now();
-  order.orderStatus = 'shipped';
+  // 4️⃣ Update shipping fields
+  order.isShipped       = true;
+  order.shippedAt       = shippingDate || Date.now();
+  order.orderStatus     = 'shipped';
   order.shippingDetails = {
     trackingNumber,
-    carrier: carrier || 'Standard Shipping',
+    carrier:   carrier || 'Standard Shipping',
     shippedAt: shippingDate || Date.now(),
   };
 
   const updatedOrder = await order.save();
 
-  // Notify buyer that order has been shipped
-  try {
-    // You'll need to get buyer info from the order items or add buyer field to order model
-    const buyerEmail = order.paymentResult?.email_address;
-    if (buyerEmail) {
+  // 5️⃣ Notify the buyer
+  const buyerEmail = order.user.email;
+  if (buyerEmail) {
+    try {
       await sendNotificationEmail({
         to: buyerEmail,
-        subject: 'Your Order Has Been Shipped',
-        type: 'order_shipped',
+        type: 'order_shipped',  
         orderData: {
-          orderId: order._id,
-          orderNumber: order._id.toString().slice(-8),
+          orderNumber:    order._id.toString().slice(-8),
           trackingNumber,
-          carrier: carrier || 'Standard Shipping',
-          shippingAddress: order.shippingAddress,
+          carrier,
         }
       });
+      console.log(`✅ Shipping notification sent to buyer ${buyerEmail}`);
+    } catch (err) {
+      console.error(`❌ Failed to send shipping email to buyer ${buyerEmail}:`, err);
     }
-  } catch (emailError) {
-    console.error('Failed to send shipping notification email:', emailError);
+  } else {
+    console.warn('⚠️  No buyer email found—skipping shipping notification');
   }
 
+  // 6️⃣ Return updated order
   res.json(updatedOrder);
 });
 
@@ -246,11 +286,13 @@ const confirmOrderReceived = asyncHandler(async (req, res) => {
   order.confirmedReceiptAt = Date.now();
 
   const updatedOrder = await order.save();
-
+const sellerEmails = [ 
+  ...new Set(order.orderItems.map(i => i.seller.email)) 
+]
   // Notify seller that order has been confirmed as received
   try {
     await sendNotificationEmail({
-      to: order.user.email,
+      to: email,
       subject: 'Order Confirmed as Delivered',
       type: 'order_delivered',
       orderData: {
@@ -272,7 +314,7 @@ const confirmOrderReceived = asyncHandler(async (req, res) => {
 const createDispute = asyncHandler(async (req, res) => {
   const { reason, description, disputeType } = req.body;
 
-  // fetch order + buyer + each item's seller
+  // 1️⃣ Load order + buyer + sellers
   const order = await Order.findById(req.params.id)
     .populate('user', 'name email')
     .populate('orderItems.seller', 'name email');
@@ -282,6 +324,7 @@ const createDispute = asyncHandler(async (req, res) => {
     throw new Error('Order not found');
   }
 
+  // 2️⃣ Authorization
   const isBuyer  = order.user._id.equals(req.user._id);
   const isSeller = order.orderItems.some(i => i.seller._id.equals(req.user._id));
   if (!isBuyer && !isSeller && !req.user.isAdmin) {
@@ -289,11 +332,13 @@ const createDispute = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to create dispute for this order');
   }
 
+  // 3️⃣ Prevent duplicates
   if (order.disputeStatus !== 'none') {
     res.status(400);
     throw new Error('Dispute already exists for this order');
   }
 
+  // 4️⃣ Validate reason
   const validReasons = [
     'item_not_received',
     'item_not_as_described',
@@ -307,65 +352,87 @@ const createDispute = asyncHandler(async (req, res) => {
     throw new Error('Invalid dispute reason');
   }
 
-  // flag and embed dispute
+  // 5️⃣ Embed & save dispute
   order.disputeStatus = 'open';
   order.dispute = {
     reason,
     description,
     disputeType: disputeType || 'general',
-    createdBy: req.user._id,
-    createdAt: Date.now(),
-    status: 'open',
+    createdBy:   req.user._id,
+    createdAt:   Date.now(),
+    status:      'open',
   };
+  const updatedOrder = await order.save();
 
-  const updated = await order.save();
-
-  // 1) notify admin
+  // 🔹🔹 Notify the requester that we’ve received their dispute
   try {
     await sendNotificationEmail({
-      to: process.env.ADMIN_EMAIL,
-      subject: 'New Dispute Created',
-      type: 'dispute_created',
+      to:   updatedOrder.user.email,
+      type: 'disputeRequestReceived',   // new template key you added
       orderData: {
-        orderId: order._id,
-        orderNumber: order._id.toString().slice(-8),
-        reason,
-        description,
-        createdBy: req.user.name || req.user.email,
+        orderNumber: updatedOrder._id.toString().slice(-8),
       },
     });
+    console.log(`✅ Dispute receipt email sent to ${updatedOrder.user.email}`);
   } catch (err) {
-    console.error('❌ Admin notification failed:', err);
+    console.error(`❌ Failed to send dispute-received email to user:`, err.message);
   }
 
-  // 2) notify counter-party(ies)
-  let recipEmails = [];
-  if (isBuyer) {
-    // every seller on this order
-    recipEmails = order.orderItems.map(i => i.seller.email);
-  } else if (isSeller) {
-    // single buyer
-    recipEmails = [order.user.email];
+  // 6️⃣ Notify all admins
+  let admins = await User.find({ isAdmin: true }).select('email name');
+  if (!admins.length && process.env.ADMIN_EMAIL) {
+    admins = [{
+      email: process.env.ADMIN_EMAIL,
+      name:  process.env.ADMIN_NAME || 'Admin',
+    }];
   }
-  recipEmails = Array.from(new Set(recipEmails))
-    .filter(email => email && email !== req.user.email);
+  if (admins.length) {
+    await Promise.all(admins.map(async admin => {
+      try {
+        await sendNotificationEmail({
+          to: admin.email,
+          type: 'dispute_created',
+          orderData: {
+            orderNumber: updatedOrder._id.toString().slice(-8),
+            reason,
+            description,
+            createdBy: req.user.name || req.user.email,
+          },
+        });
+        console.log(`✅ Dispute email sent to admin ${admin.email}`);
+      } catch (err) {
+        console.error(`❌ Failed to notify admin ${admin.email}:`, err.message);
+      }
+    }));
+  } else {
+    console.warn('⚠️ No admins configured—skipping admin notifications');
+  }
 
-  await Promise.all(
-    recipEmails.map(email =>
-      sendNotificationEmail({
+  // 7️⃣ Notify the counter-party(ies)
+  const recipients = Array.from(new Set(
+    isBuyer
+      ? order.orderItems.map(i => i.seller.email)
+      : [order.user.email]
+  )).filter(email => email && email !== req.user.email);
+
+  await Promise.all(recipients.map(async email => {
+    try {
+      await sendNotificationEmail({
         to: email,
-        subject: 'A Dispute Has Been Opened',
         type: 'dispute_notification',
         orderData: {
-          orderId: order._id,
-          orderNumber: order._id.toString().slice(-8),
+          orderNumber: updatedOrder._id.toString().slice(-8),
           reason,
         },
-      }).catch(err => console.error(`❌ Failed to notify ${email}:`, err))
-    )
-  );
+      });
+      console.log(`✅ Dispute notification sent to ${email}`);
+    } catch (err) {
+      console.error(`❌ Failed to notify ${email}:`, err.message);
+    }
+  }));
 
-  res.json(updated);
+  // 8️⃣ Return updated order
+  res.json(updatedOrder);
 });
 
 
@@ -439,7 +506,7 @@ const updateDispute = asyncHandler(async (req, res) => {
 });
 
 // controller
-export const getDisputes = asyncHandler(async (req, res) => {
+const getDisputes = asyncHandler(async (req, res) => {
 // after
 const statuses = ['open','in_review','resolved','closed'];
 const disputes = await Order.find({
@@ -458,22 +525,69 @@ const disputes = await Order.find({
 // @desc    Update order to delivered
 // @route   PUT /api/orders/:id/deliver
 // @access  Private/Admin
+
 const updateOrderToDelivered = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id);
+  const order = await Order.findById(req.params.id)
 
-  if (order) {
-    order.isDelivered = true;
-    order.deliveredAt = Date.now();
-    order.orderStatus = 'delivered';
+  if (!order) {
+    res.status(404)
+    throw new Error('Order not found')
+  }
 
-    const updatedOrder = await order.save();
+  // 1️⃣ mark as delivered
+  order.isDelivered   = true
+  order.deliveredAt   = Date.now()
+  order.orderStatus   = 'delivered'
+  const updatedOrder  = await order.save()
 
-    res.json(updatedOrder);
-  } else {
-    res.status(404);
-    throw new Error('Order not found');
+  // 2️⃣ notify the buyer
+  try {
+    const buyer = await User.findById(order.user).select('email name')
+await sendNotificationEmail({
+  to: buyer.email,
+  type: 'order_delivered_buyer',
+  orderData: {
+    orderNumber: order._id.toString().slice(-8),
+    deliveredAt: order.deliveredAt
   }
 });
+    console.log(`✅ Delivery email sent to buyer ${buyer.email}`)
+  } catch (err) {
+    console.error(`❌ Failed to send delivery email to buyer:`, err)
+  }
+
+  // 3️⃣ notify each seller
+  // collect unique seller IDs from the order items
+  const sellerIds = [
+    ...new Set(order.orderItems.map(item => item.seller.toString()))
+  ]
+  const sellers = await User.find({ _id: { $in: sellerIds } }).select('email name')
+
+  await Promise.all(sellers.map(async seller => {
+    // filter only the items that belong to this seller
+    const theirItems = order.orderItems.filter(
+      i => i.seller.toString() === seller._id.toString()
+    )
+
+    try {
+await sendNotificationEmail({
+  to: seller.email,
+  type: 'order_delivered',
+  orderData: {
+    orderNumber: order._id.toString().slice(-8),
+    items: theirItems.map(i=>({ name:i.name, qty:i.qty, price:i.price }))
+        }
+      })
+      console.log(`✅ Delivered-notification sent to seller ${seller.email}`)
+    } catch (err) {
+      console.error(`❌ Failed to email seller ${seller.email}:`, err)
+    }
+  }))
+
+  // 4️⃣ respond
+  res.json(updatedOrder)
+})
+
 
 // @desc    Update order status
 // @route   PUT /api/orders/:id/status
@@ -711,6 +825,7 @@ export {
   confirmOrderReceived,
   createDispute,
   updateDispute,
+  getDisputes,
   updateOrderStatus,
   getOrders,
 

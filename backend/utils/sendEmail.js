@@ -114,6 +114,34 @@ export const emailTemplates = {
       </div>
     `,
   }),
+    sellerRequestProcessing: ({ userName }) => ({
+    subject: 'We’ve received your seller application',
+    text: `Hello ${userName}, your request is now pending review.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #ddd;border-radius:10px;">
+        <h2 style="text-align:center;color:#333;">Request Received</h2>
+        <p>Hello <strong>${userName}</strong>,</p>
+        <p>Thanks for applying to become a seller. Your request is now pending review by our team. We’ll let you know as soon as it’s approved.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
+        <p style="font-size:12px;color:#666;text-align:center;">Automated message, do not reply.</p>
+      </div>
+    `,
+  }),
+
+  // 2️⃣ User “request declined” notification
+  sellerDeclined: ({ userName }) => ({
+    subject: 'Your seller application was declined',
+    text: `Hello ${userName}, unfortunately your request to become a seller was declined.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #ddd;border-radius:10px;">
+        <h2 style="text-align:center;color:#dc3545;">Application Declined</h2>
+        <p>Hello <strong>${userName}</strong>,</p>
+        <p>We’re sorry to inform you that your seller application has been declined. If you have questions, please contact support.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
+        <p style="font-size:12px;color:#666;text-align:center;">Automated message, do not reply.</p>
+      </div>
+    `,
+  }),
 
   sellerApproved: ({ name }) => ({
     subject: 'Your Seller Account Has Been Approved 🎉',
@@ -151,6 +179,147 @@ export const emailTemplates = {
     `,
   }),
 
+  orderConfirmation : ({ customerName, orderId, total, items }) => ({
+  subject: `Thank you for your order, ${customerName}!`,
+  text: `Hi ${customerName},\n\nWe’ve received your order #${orderId}. Your order total is ₦${total}.\n\nThank you for shopping with us!`,
+  html: `
+    <div style="font-family: Arial, sans-serif; max-width:600px;margin:0 auto;padding:20px;border:1px solid #ddd;border-radius:10px;">
+      <h2 style="color:#333;text-align:center;">Order Confirmation</h2>
+      <p>Hello <strong>${customerName}</strong>,</p>
+      <p>Thank you for your purchase! We’ve received your order <strong>#${orderId}</strong> successfully.</p>
+
+      <h3>Order Summary</h3>
+      <table cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse: collapse; margin-top:16px;">
+        <thead>
+          <tr>
+            <th align="left" style="border-bottom:1px solid #ddd; padding:8px;">Item</th>
+            <th align="center" style="border-bottom:1px solid #ddd; padding:8px;">Qty</th>
+            <th align="right" style="border-bottom:1px solid #ddd; padding:8px;">Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(i => `
+            <tr>
+              <td style="padding:8px; border-bottom:1px solid #eee;">${i.name}</td>
+              <td align="center" style="padding:8px; border-bottom:1px solid #eee;">${i.qty}</td>
+              <td align="right" style="padding:8px; border-bottom:1px solid #eee;">₦${i.price}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" align="right" style="padding:8px; font-weight:bold;">Total:</td>
+            <td align="right" style="padding:8px; font-weight:bold;">₦${total}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <p style="margin-top:20px;">We’ll let you know when your items ship.</p>
+      <hr style="border:none;border-top:1px solid #eee;margin:20px 0;"/>
+      <p style="font-size:12px;color:#666;text-align:center;">Automated message, do not reply.</p>
+    </div>
+  `,
+}),
+
+newOrderNotification : ({ sellerName, orderId, items }) => ({
+  subject: `New order received: #${orderId}`,
+  text: `Hi ${sellerName},\n\nYou’ve got a new order #${orderId}!`, 
+  html: `
+    <div style="font-family: Arial, sans-serif; max-width:600px;margin:0 auto;padding:20px;border:1px solid #ddd;border-radius:10px;">
+      <h2 style="color:#333;text-align:center;">New Order Received</h2>
+      <p>Hello <strong>${sellerName}</strong>,</p>
+      <p>You have a new order <strong>#${orderId}</strong>. Here are the items:</p>
+
+      <table cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse: collapse; margin-top:16px;">
+        <thead>
+          <tr>
+            <th align="left" style="border-bottom:1px solid #ddd; padding:8px;">Item</th>
+            <th align="center" style="border-bottom:1px solid #ddd; padding:8px;">Qty</th>
+            <th align="right" style="border-bottom:1px solid #ddd; padding:8px;">Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(i => `
+            <tr>
+              <td style="padding:8px; border-bottom:1px solid #eee;">${i.name}</td>
+              <td align="center" style="padding:8px; border-bottom:1px solid #eee;">${i.qty}</td>
+              <td align="right" style="padding:8px; border-bottom:1px solid #eee;">₦${i.price}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <p style="margin-top:20px;">Please prepare these items for shipping.</p>
+      <hr style="border:none;border-top:1px solid #eee;margin:20px 0;"/>
+      <p style="font-size:12px;color:#666;text-align:center;">Automated message, do not reply.</p>
+    </div>
+  `,
+}),
+
+  newProductUploaded: ({ adminName, sellerName, sellerEmail, productName, productId }) => ({
+    subject: 'New Art Uploaded',
+    text: `Hi ${adminName}, ${sellerName} (${sellerEmail}) just uploaded “${productName}”.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+        <h2>New Art Uploaded</h2>
+        <p>Hi <strong>${adminName}</strong>,</p>
+        <p><strong>${sellerName}</strong> (${sellerEmail}) has just uploaded a new art piece:</p>
+        <p><strong>${productName}</strong></p>
+        <p><a href="${process.env.FRONTEND_URL}/admin/products/${productId}">Review &amp; Approve</a></p>
+        <hr/>
+        <p style="font-size:12px;color:#666;">Automated message, do not reply.</p>
+      </div>
+    `,
+  }),
+
+  // 2️⃣ Confirmation to the seller that their submission is pending review
+  productSubmissionReceived: ({ name, productName, productId }) => ({
+    subject: 'Your art submission is pending approval',
+    text: `Hello ${name}, your art “${productName}” is now pending approval.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+        <h2>Submission Received</h2>
+        <p>Hello <strong>${name}</strong>,</p>
+        <p>Your art piece <strong>“${productName}”</strong> has been submitted and is pending review by our team.</p>
+        <p>You can check its status here: <a href="${process.env.FRONTEND_URL}/seller/products/${productId}">View My Products</a></p>
+        <hr/>
+        <p style="font-size:12px;color:#666;">Automated message, do not reply.</p>
+      </div>
+    `,
+  }),
+
+    productApproved: ({ sellerName, productName, productId }) => ({
+    subject: 'Your art has been approved! 🎉',
+    text: `Hi ${sellerName}, your product "${productName}" is now live on our platform!`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #ddd;border-radius:10px;">
+        <h2 style="text-align:center;color:#28a745;">Product Approved</h2>
+        <p>Hi <strong>${sellerName}</strong>,</p>
+        <p>Your art piece <strong>"${productName}"</strong> has been approved and is now available for purchase!</p>
+        <div style="text-align:center;margin:30px 0;">
+          <a href="${process.env.FRONTEND_URL}/products/${productId}" style="background:#28a745;color:white;padding:12px 30px;text-decoration:none;border-radius:5px;">View Your Product</a>
+        </div>
+        <hr style="border:none;border-top:1px solid #eee;margin:20px 0;"/>
+        <p style="font-size:12px;color:#666;text-align:center;">Automated message, do not reply.</p>
+      </div>
+    `,
+  }),
+
+  productDeclined: ({ sellerName, productName, productId }) => ({
+    subject: 'Your art submission was declined',
+    text: `Hi ${sellerName}, your product "${productName}" was not approved.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #ddd;border-radius:10px;">
+        <h2 style="text-align:center;color:#dc3545;">Submission Declined</h2>
+        <p>Hi <strong>${sellerName}</strong>,</p>
+        <p>Unfortunately, your art piece <strong>"${productName}"</strong> did not meet our guidelines and has been declined.</p>
+        <p>If you have questions, please <a href="mailto:${process.env.SUPPORT_EMAIL}">contact support</a>.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:20px 0;"/>
+        <p style="font-size:12px;color:#666;text-align:center;">Automated message, do not reply.</p>
+      </div>
+    `,
+  }),
+
   // Order & dispute notifications
   payment_received: ({ orderNumber, totalPrice, shippingAddress }) => ({
     subject: `Payment Received - Order #${orderNumber}`,
@@ -173,6 +342,23 @@ export const emailTemplates = {
     `,
   }),
 
+  paymentReminder: ({ customerName, orderId }) => ({
+    subject: `Complete payment for Order #${orderId}`,
+    text: `Hi ${customerName}, please complete your payment for order #${orderId} to get your art shipped!`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #ddd;border-radius:10px;">
+        <h2 style="text-align:center;color:#333;">Almost There!</h2>
+        <p>Hello <strong>${customerName}</strong>,</p>
+        <p>You’ve placed order <strong>#${orderId}</strong> but we haven’t received payment yet. Click below to complete checkout and we’ll ship your art!</p>
+        <div style="text-align:center;margin:30px 0;">
+          <a href="${process.env.FRONTEND_URL}/orders/${orderId}/pay" style="background:#007bff;color:white;padding:12px 30px;text-decoration:none;border-radius:5px;">Pay Now</a>
+        </div>
+        <hr style="border:none;border-top:1px solid #eee;margin:20px 0;"/>
+        <p style="font-size:12px;color:#666;text-align:center;">Automated message, do not reply.</p>
+      </div>
+    `,
+  }),
+
   order_shipped: ({ orderNumber, trackingNumber, carrier }) => ({
     subject: `Your Order Has Been Shipped - #${orderNumber}`,
     text: `Your order #${orderNumber} has been shipped. Tracking: ${trackingNumber}`,
@@ -190,6 +376,8 @@ export const emailTemplates = {
     `,
   }),
 
+  
+
   order_delivered: ({ orderNumber }) => ({
     subject: `Order Delivered - #${orderNumber}`,
     text: `Order #${orderNumber} has been delivered.`,
@@ -201,6 +389,24 @@ export const emailTemplates = {
       </div>
     `,
   }),
+    disputeRequestReceived: ({ orderNumber }) => ({
+    subject: `We’ve received your dispute for Order #${orderNumber}`,
+    text: `We’ve received your dispute for Order #${orderNumber} and our team will review it shortly.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;
+                  border:1px solid #ddd;border-radius:10px;">
+        <h2 style="color:#333;text-align:center;">Dispute Received</h2>
+        <p>We’ve received your dispute for <strong>Order #${orderNumber}</strong>.</p>
+        <p>Our team will review it and get back to you as soon as possible.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:20px 0;"/>
+        <p style="font-size:12px;color:#666;text-align:center;">
+          Automated message, do not reply.
+        </p>
+      </div>
+    `,
+  }),
+
+  
 
   dispute_created: ({ orderNumber, reason, description }) => ({
     subject: `New Dispute - Order #${orderNumber}`,
@@ -266,6 +472,9 @@ export const sendEmail = async ({ to, subject, text, html }) => {
   }
 };
 
+
+
+
 // (async () => {
 //   try {
 //     await sendEmail({
@@ -310,18 +519,36 @@ export const sendOTPEmail = async ({ to, name, otp, type = 'verification' }) => 
   return sendTemplateEmail({ to, templateName, templateData: { name, otp } });
 };
 
-export const sendSellerEmail = async ({ to, type, userData, adminData = {} }) => {
-  let templateName, templateData;
-  if (type === 'request') {
-    templateName = 'sellerApprovalRequest';
-    templateData = { userName: userData.name, userEmail: userData.email, adminName: adminData.name || 'Admin' };
-  } else if (type === 'approved') {
-    templateName = 'sellerApproved';
-    templateData = { name: userData.name };
-  } else {
-    throw new Error(`Unknown seller email type: ${type}`);
-  }
-  return sendTemplateEmail({ to, templateName, templateData });
-};
+// export const declineSeller = asyncHandler(async (req, res) => {
+//   const user = await User.findById(req.params.id);
 
-export default sendEmail;
+//   if (!user) {
+//     res.status(404);
+//     throw new Error('User not found');
+//   }
+
+//   // 1) clear any pending seller‐request flags
+//   user.sellerRequested = false;
+//   user.isSeller = false;
+//   user.sellerApproved = false;
+//   await user.save();
+
+//   // 2) notify the user that their request was declined
+//   try {
+//     await sendSellerEmail({
+//       to: user.email,
+//       type: 'declined',
+//       userData: { name: user.name }
+//     });
+//     console.log(`✅ Decline email sent to ${user.email}`);
+//   } catch (err) {
+//     console.error(`❌ Failed to send decline email to ${user.email}:`, err);
+//   }
+
+//   // 3) respond to the client
+//   res.json({ message: 'Seller request declined' });
+// });
+
+
+
+// export default sendEmail;

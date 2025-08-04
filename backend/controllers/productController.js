@@ -2,7 +2,7 @@ import asyncHandler from '../middleware/asyncHandler.js';
 import Product from '../models/productModel.js';
 import User from '../models/userModel.js';
 import mongoose from 'mongoose';
-import { sendEmail, sendTemplateEmail, sendOTPEmail, sendSellerEmail } from '../utils/sendEmail.js';
+import { sendEmail, sendTemplateEmail, sendOTPEmail, sendNotificationEmail} from '../utils/sendEmail.js';
 
 
 // @desc    Fetch all products
@@ -269,116 +269,110 @@ const getRecommendedProducts = asyncHandler(async (req, res) => {
 // @route   POST /api/products
 // @access  Private (Seller only, not admin)
 const createProduct = asyncHandler(async (req, res) => {
-  console.log('=== DEBUG INFO ===');
-  console.log('Content-Type:', req.headers['content-type']);
-  console.log('Request body:', req.body);
-  console.log('Body keys:', Object.keys(req.body));
-  console.log('Body values:', Object.values(req.body));
-  console.log('=================');
 
-  // 1) Ensure user is an approved seller
+
+  // 1️⃣ Ensure user is an approved seller
   const user = await User.findById(req.user._id);
   if (!user || !user.isSeller || !user.sellerApproved) {
     return res.status(403).json({ message: 'You are not an approved seller' });
   }
 
-  // 2) Handle both multipart/form-data and JSON payloads
-  let productData;
+  // 2️⃣ Normalize payload for multipart vs JSON
+  let productData = req.body;
   if (req.headers['content-type']?.includes('multipart/form-data')) {
-    productData = req.body;
-    // parse JSON‑encoded arrays if needed
-    if (typeof productData.images === 'string') {
-      productData.images = JSON.parse(productData.images);
-    }
-    if (typeof productData.tags === 'string') {
-      productData.tags = JSON.parse(productData.tags);
-    }
-  } else {
-    productData = req.body;
+    if (typeof productData.images === 'string') productData.images = JSON.parse(productData.images);
+    if (typeof productData.tags   === 'string') productData.tags   = JSON.parse(productData.tags);
   }
 
-  // 3) Destructure from the normalized productData
+  // 3️⃣ Destructure + validate
   const {
     name,
     price,
     description,
-    image,
-    images,
-    brand,
+    image,                 // main image URL
+    images = [],           // array of other URLs
     category,
-    countInStock,
-    tags,
-    specifications,
-    weight,
-    dimensions,
-    sku,
-    metaTitle,
-    metaDescription,
-    salePrice,
-    isFeaturedCollection,
     medium,
     style,
     type,
-  } = productData;
+    brand = '',
+    countInStock = 0,
+    tags = [],
+    specifications = [],
+    weight = null,
+    dimensions = {},       // e.g. { length: 10, width: 8, height: 1 }
+    sku = '',
+    metaTitle = '',
+    metaDescription = '',
+    salePrice = null,
+    isFeaturedCollection = false,
+  } = productData
 
-  // 4) Validate core required fields
   if (!name || price == null || !description || !image || !category) {
     return res.status(400).json({
       message: 'Missing required fields: name, price, description, image, category',
     });
   }
 
-  // 5) Build and save the new Product
+  // 4️⃣ Build & save
   const product = new Product({
     user: req.user._id,
     name,
     price,
     description,
     image,
-    images: images || [],
-    brand: brand || '',
+    images,
     category,
-    countInStock: countInStock ?? 0,
-    tags: tags || [],
-    specifications: specifications || [],
-    weight: weight ?? null,
-    dimensions: dimensions || {},
-    sku: sku || undefined,
-    metaTitle: metaTitle || '',
-    metaDescription: metaDescription || '',
-    salePrice: salePrice ?? null,
-    isFeaturedCollection: Boolean(isFeaturedCollection),
-    approved: false,       // starts off unapproved
     medium,
     style,
     type,
-  });
-
+    brand,
+    countInStock,
+    tags,
+    specifications,
+    weight,
+    dimensionLength: dimensions.length ?? null,
+    dimensionWidth:  dimensions.width  ?? null,
+    dimensionHeight: dimensions.height ?? null,
+   
+    metaTitle,
+    metaDescription,
+    salePrice,
+    isFeaturedCollection,
+    approved: false,    // starts off pending
+  })
   const createdProduct = await product.save();
 
-  // 6) Notify every admin about the new art upload
+  // 5️⃣ Notify all admins
   const admins = await User.find({ isAdmin: true }).select('email name');
   await Promise.all(
-    admins.map(async (admin) => {
-      try {
-        await sendEmail({
-          to: admin.email,
-          subject: 'New Art Uploaded',
-          html: `
-            <p>Hi ${admin.name},</p>
-            <p>User <strong>${user.name}</strong> (${user.email}) has uploaded a new art piece:</p>
-            <p><strong>${createdProduct.name}</strong></p>
-            <p><a href="${process.env.FRONTEND_URL}/admin/products/${createdProduct._id}">Review & Approve</a></p>
-          `,
-        });
-        console.log(`Notified admin ${admin.email} of new art upload`);
-      } catch (err) {
-        console.error(`Failed to email admin ${admin.email}:`, err);
-      }
-    })
+    admins.map(admin =>
+      sendNotificationEmail({
+        to: admin.email,
+        type: 'newProductUploaded',
+        orderData: {
+          adminName:    admin.name,
+          sellerName:   user.name,
+          sellerEmail:  user.email,
+          productName:  createdProduct.name,
+          productId:    createdProduct._id.toString(),
+        }
+      }).catch(err => console.error(`❌ Admin ${admin.email} email failed:`, err.message))
+    )
   );
 
-  // 7) Return success response
+  // 6️⃣ Notify the seller
+  await sendNotificationEmail({
+    to: user.email,
+    type: 'productSubmissionReceived',
+    orderData: {
+      name:        user.name,
+      productName: createdProduct.name,
+      productId:   createdProduct._id.toString(),
+    }
+  }).catch(err => console.error(`❌ Seller ${user.email} email failed:`, err.message));
+
+  // 7️⃣ Respond
   res.status(201).json({
     message: 'Product created successfully. Pending admin approval.',
     product: createdProduct,
@@ -666,6 +660,7 @@ const searchProducts = asyncHandler(async (req, res) => {
 // @desc    Approve product
 // @route   PUT /api/products/:id/approve
 // @access  Private/Admin
+
 const approveProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
   if (!product) {
@@ -675,6 +670,25 @@ const approveProduct = asyncHandler(async (req, res) => {
 
   product.approved = true;
   await product.save();
+
+  // 🎉 Notify only the seller
+  const seller = await User.findById(product.user).select('email name');
+  if (seller?.email) {
+    try {
+      await sendNotificationEmail({
+        to: seller.email,
+        type: 'productApproved',        // new template key
+        orderData: {
+          sellerName:  seller.name,
+          productName: product.name,
+          productId:   product._id.toString(),
+        },
+      });
+      console.log(`✅ Approval email sent to seller ${seller.email}`);
+    } catch (err) {
+      console.error(`❌ Failed to send approval email to ${seller.email}:`, err.message);
+    }
+  }
 
   res.json({ message: 'Product approved successfully', product });
 });
@@ -729,18 +743,38 @@ const getUnapprovedProducts = asyncHandler(async (req, res) => {
   res.json(products);
 });
 
-export const declineProduct = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id)
+const declineProduct = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id);
   if (!product) {
-    res.status(404)
-    throw new Error('Product not found')
+    res.status(404);
+    throw new Error('Product not found');
   }
 
-  // delete it directly
-  await Product.findByIdAndDelete(req.params.id)
+  // 1️⃣ Fetch seller
+  const seller = await User.findById(product.user).select('email name');
+  if (seller?.email) {
+    try {
+      await sendNotificationEmail({
+        to: seller.email,
+        type: 'productDeclined',       // new template key
+        orderData: {
+          sellerName:  seller.name,
+          productName: product.name,
+          productId:   product._id.toString(),
+        },
+      });
+      console.log(`✅ Decline email sent to seller ${seller.email}`);
+    } catch (err) {
+      console.error(`❌ Failed to send decline email to ${seller.email}:`, err.message);
+    }
+  }
 
-  res.json({ message: 'Product request declined and removed' })
-})
+  // 2️⃣ Remove the product
+  await product.deleteOne();
+
+  res.json({ message: 'Product request declined and removed' });
+});
+
 
 
 
@@ -767,6 +801,7 @@ export {
   getRecommendedProducts,
   deleteProduct,
   createProduct,
+  declineProduct,
   updateProduct,
   toggleFeaturedProduct,
   createProductReview,
