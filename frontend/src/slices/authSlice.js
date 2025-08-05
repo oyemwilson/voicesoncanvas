@@ -11,15 +11,12 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action) => {
-      // Store user info (without token since it's in HTTP-only cookie)
-      const { token, ...userInfoWithoutToken } = action.payload;
-      state.userInfo = userInfoWithoutToken;
-      localStorage.setItem('userInfo', JSON.stringify(userInfoWithoutToken));
+      state.userInfo = action.payload;
+      localStorage.setItem('userInfo', JSON.stringify(action.payload));
     },
     logout: (state) => {
       state.userInfo = null;
-      localStorage.removeItem('userInfo');
-      // Note: HTTP-only cookie will be cleared by backend logout endpoint
+      localStorage.removeItem('userInfo'); // ✅ only remove auth
     },
   },
 });
