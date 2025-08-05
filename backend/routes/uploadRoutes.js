@@ -10,18 +10,15 @@ import { sendNotificationEmail} from '../utils/sendEmail.js';
 
 const router = express.Router();
 
-const uploadDir =
-  process.env.NODE_ENV === 'production'
-    ? '/var/data/uploads'
-    : path.join(path.resolve(), 'uploads');
+const uploadDir = path.join(path.resolve(), 'uploads');
 
-// 2) Ensure it exists
+// Ensure it exists (both dev & prod):
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
   console.log(`Created uploads directory at ${uploadDir}`);
 }
 
-// 3) Now Multer can safely write there
+// Then your Multer storage…
 const storage = multer.diskStorage({
   destination(req, file, cb) {
     cb(null, uploadDir);
