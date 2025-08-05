@@ -1,8 +1,9 @@
 import path from 'path';
 import express from 'express';
 import dotenv from 'dotenv';
-import cookieParser from 'cookie-parser';
 dotenv.config();
+import cookieParser from 'cookie-parser';
+
 import cors from 'cors';
 import connectDB from './config/db.js';
 import productRoutes from './routes/productRoutes.js';
@@ -50,6 +51,10 @@ app.use((req, res, next) => {
   console.log('Headers:', req.headers);
   next();
 });
+
+// right after cookieParser()
+app.use(cors(corsOptions));
+
 
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
