@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import express from 'express';
 import dotenv from 'dotenv';
@@ -13,12 +14,14 @@ import blogRoutes    from './routes/blogRoutes.js';
 import dhlRoutes     from './routes/dhlRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
+// Load environment variables
 dotenv.config();
+// Connect to database
 connectDB();
 
 const app = express();
 
-// 1) Body parsing + cookies + CORS
+// 1) Body parsing, cookies, CORS
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -31,7 +34,7 @@ app.use(cors({
   credentials: true,
 }));
 
-// 2) Your API routes
+// 2) API routes
 app.use('/api/products', productRoutes);
 app.use('/api/users',    userRoutes);
 app.use('/api/orders',   orderRoutes);
@@ -39,28 +42,30 @@ app.use('/api/upload',   uploadRoutes);
 app.use('/api/blogs',    blogRoutes);
 app.use('/api/dhl',      dhlRoutes);
 
-// 3) Pay config endpoints
-app.get('/api/config/paypal',  (req, res) => res.send({ clientId: process.env.PAYPAL_CLIENT_ID }));
-app.get('/api/config/paystack', (req, res) => res.send({ publicKey:  process.env.REACT_APP_PAYSTACK_PUBLIC_KEY }));
+// 3) Payment configuration endpoints
+app.get('/api/config/paypal', (req, res) => {
+  res.send({ clientId: process.env.PAYPAL_CLIENT_ID });
+});
+app.get('/api/config/paystack', (req, res) => {
+  res.send({ publicKey: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY });
+});
 
-// 4) Serve uploads folder
-if (process.env.NODE_ENV === 'production') {
-  // In prod, uploads are in /var/data/uploads
-  app.use('/uploads', express.static('/var/data/uploads'));
-} else {
-  // In dev, uploads live in ./uploads
-  app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
+// 4) Ensure uploads directory exists and serve it
+const uploadDir = path.join(path.resolve(), 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log(`Created uploads directory at ${uploadDir}`);
 }
+app.use('/uploads', express.static(uploadDir));
 
-// 5) Serve React build & client-side routing
+// 5) Serve React build & SPA fallback (production only)
 if (process.env.NODE_ENV === 'production') {
-  const __dirname = path.resolve();
-  const clientBuildPath = path.join(__dirname, 'frontend', 'build');
+  const clientBuildPath = path.join(path.resolve(), 'frontend', 'build');
 
-  // Static files
+  // Serve static assets
   app.use(express.static(clientBuildPath));
 
-  // Catch-all to index.html (skip API and uploads)
+  // All other GETs not matching API or uploads -> index.html
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
       return next();
@@ -73,6 +78,7 @@ if (process.env.NODE_ENV === 'production') {
 app.use(notFound);
 app.use(errorHandler);
 
+// Start server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
