@@ -25,7 +25,7 @@ const authUser = asyncHandler(async (req, res) => {
     // Update last login
     user.lastLogin = new Date();
     await user.save();
-
+const token = generateToken(res, user._id)
     generateToken(res, user._id);
 
     res.json({
@@ -36,7 +36,7 @@ const authUser = asyncHandler(async (req, res) => {
       isEmailVerified: user.isEmailVerified,
       isSeller: user.isSeller,
       sellerApproved: user.sellerApproved, 
-      
+      token, 
     });
   } else {
     res.status(401);
