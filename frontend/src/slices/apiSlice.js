@@ -4,18 +4,9 @@ import { logout } from './authSlice';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: BASE_URL,
-  credentials: 'include',
-  prepareHeaders: (headers, { getState }) => {
-    const token = getState().auth.userInfo?.token;
-    if (token) {
-      headers.set('authorization', `Bearer ${token}`);
-    }
-    return headers;
-  },
+  credentials: 'include', // This sends cookies automatically
+  // Remove the prepareHeaders - cookies are sent automatically
 });
-
-
-
 
 async function baseQueryWithAuth(args, api, extra) {
   const result = await baseQuery(args, api, extra);
@@ -30,4 +21,3 @@ export const apiSlice = createApi({
   tagTypes: ['Product', 'Order', 'User', 'Disputes'],
   endpoints: (builder) => ({}),
 });
-     
