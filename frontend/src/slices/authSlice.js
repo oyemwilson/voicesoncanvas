@@ -1,9 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  userInfo: localStorage.getItem('userInfo')
-    ? JSON.parse(localStorage.getItem('userInfo'))
-    : null,
+  userInfo: null, // Don't persist sensitive data
 };
 
 const authSlice = createSlice({
@@ -12,11 +10,13 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (state, action) => {
       state.userInfo = action.payload;
-      localStorage.setItem('userInfo', JSON.stringify(action.payload));
+      // Store only non-sensitive user info
+      const { token, ...userInfo } = action.payload;
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
     },
     logout: (state) => {
       state.userInfo = null;
-      localStorage.removeItem('userInfo'); // ✅ only remove auth
+      localStorage.removeItem('userInfo');
     },
   },
 });

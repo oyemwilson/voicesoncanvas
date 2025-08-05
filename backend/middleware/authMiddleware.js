@@ -12,12 +12,16 @@ const protect = asyncHandler(async (req, res, next) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
       req.user = await User.findById(decoded.userId).select('-password');
-
+      
+      if (!req.user) {
+        res.status(401);
+        throw new Error('User not found');
+      }
+      
       next();
     } catch (error) {
-      console.error(error);
+      console.error('Token verification failed:', error.message);
       res.status(401);
       throw new Error('Not authorized, token failed');
     }
@@ -26,6 +30,11 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new Error('Not authorized, no token');
   }
 });
+
+if (!process.env.JWT_SECRET) {
+  console.error('JWT_SECRET is not defined in environment variables');
+  process.exit(1);
+}
 
 // User must be an admin
 const admin = (req, res, next) => {

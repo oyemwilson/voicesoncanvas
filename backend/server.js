@@ -27,23 +27,29 @@ app.use(cookieParser());
 // Define your allowed origins in an array
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://voicesoncanvas.onrender.com',    // your front-end
-  'https://voicesoncanvas1.onrender.com',   // your back-end
-]
+  'https://voicesoncanvas.onrender.com',
+  'https://voicesoncanvas1.onrender.com',
+];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // allow REST tools like Postman (no origin)
+    // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true)
+      return callback(null, true);
     }
-    callback(new Error(`CORS block: ${origin}`))
+    callback(new Error(`CORS blocked: ${origin}`));
   },
   credentials: true,
-}
-
-app.use(cors(corsOptions))
-
+  // Add these for better production support
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use((req, res, next) => {
+  console.log('Cookies:', req.cookies);
+  console.log('Headers:', req.headers);
+  next();
+});
 
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);

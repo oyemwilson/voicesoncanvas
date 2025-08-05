@@ -5,13 +5,15 @@ const generateToken = (res, userId) => {
     expiresIn: '30d',
   });
 
-  // Set JWT as an HTTP-Only cookie
+  // Set JWT as an HTTP-Only cookie with proper production settings
   res.cookie('jwt', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV !== 'development', // Use secure cookies in production
-      sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
-    // sameSite: 'strict', // Prevent CSRF attacks
+    secure: process.env.NODE_ENV === 'production', // ✅ Fixed: use secure in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // ✅ Fixed
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    // Add these for production
+    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
+    path: '/',
   });
 
   return token;
