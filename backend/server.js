@@ -25,14 +25,44 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://voicesoncanvas.onrender.com',
-    'https://voicesoncanvas1.onrender.com',
-  ],
+
+// FIXED: Get your actual Render frontend URL
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://voicesoncanvas.onrender.com',
+  'https://voicesoncanvas1.onrender.com',
+  // Add your actual frontend domain here
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    console.log('CORS blocked origin:', origin); // Add logging
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
   credentials: true,
-}));
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'], // Add Cookie header
+};
+
+app.use(cors(corsOptions));
+
+// Add preflight handling for all routes
+app.options('*', cors(corsOptions));
+
+// Debug middleware
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Request Origin:', req.get('Origin'));
+    console.log('Cookies:', req.cookies);
+    console.log('Headers:', req.headers.cookie);
+  }
+  next();
+});
 
 // 2) API routes
 app.use('/api/products', productRoutes);
