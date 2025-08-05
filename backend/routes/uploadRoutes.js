@@ -66,10 +66,13 @@ router.post('/single',  protect, (req, res) => {
       return res.status(400).json({ message: 'No image file provided' });
     }
 
-    res.status(200).json({
-      message: 'Image uploaded successfully',
-      image: `/${req.file.path}`,
-    });
+    const filePath = `/uploads/${req.file.filename}`
+const fullUrl  = `${req.protocol}://${req.get('host')}${filePath}`
+res.status(200).json({
+  message: 'Image uploaded successfully',
+  image: fullUrl,
+})
+
   });
 });
 
