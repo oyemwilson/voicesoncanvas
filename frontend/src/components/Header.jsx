@@ -177,7 +177,7 @@ const newSalesCount       = newSales.length;
             <img
               src="/images/Logo.png" // ✅ path from public folder
               alt="Voices on Canvas"
-              className="h-20 md:h-20 w-auto"
+              className="h-12 md:h-20 w-auto"
             />
           </Link>
 
