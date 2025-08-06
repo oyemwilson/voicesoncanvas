@@ -3,7 +3,7 @@
 // src/utils/api.js
 export const BASE_URL = 
   process.env.NODE_ENV === 'production' 
-    ? 'https://voicesoncanvas1.onrender.com'  // Your backend URL
+    ? ''  // Your backend URL
     : 'http://localhost:5001';
 
 export const PRODUCTS_URL = '/api/products';
