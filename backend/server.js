@@ -30,7 +30,7 @@ app.use(cookieParser());
 const allowedOrigins = [
   'http://localhost:3000',
   'https://voicesoncanvas.onrender.com',
-  'https://voicesoncanvas1.onrender.com',
+  'voicesoncanvas-g4rb.onrender.com',
   // Add your actual frontend domain here
 ];
 
