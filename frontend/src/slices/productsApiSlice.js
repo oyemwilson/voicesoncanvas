@@ -29,7 +29,7 @@ export const productsApiSlice = apiSlice.injectEndpoints({
     }),
     uploadProductImage: builder.mutation({
       query: (formData) => ({
-        url: '/api/upload', // ✅ match backend
+        url: '/api/upload/single', // ✅ match backend
         method: 'POST',
         body: formData,
       }),
