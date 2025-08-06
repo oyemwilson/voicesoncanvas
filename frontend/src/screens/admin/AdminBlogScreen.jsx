@@ -37,7 +37,7 @@ const [editForm, setEditForm] = useState({ title: '', content: '', image: '', wr
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const { data } = await axios.post('/api/upload', formData, {
+      const { data } = await axios.post('/api/upload/single', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setForm((prev) => ({ ...prev, image: data.image }));
