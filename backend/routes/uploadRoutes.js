@@ -61,30 +61,22 @@ const uploadSingleImage = upload.single('image');
 const uploadMultipleImages = upload.array('images', 10);
 
 // Single image upload route
-router.post('/single',  protect, (req, res) => {
-  uploadSingleImage(req, res, function (err) {
-    if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ message: 'File too large. Maximum size is 5MB.' });
-      }
-      return res.status(400).json({ message: err.message });
-    } else if (err) {
-      return res.status(400).json({ message: err.message });
-    }
-
+router.post(
+  '/single',
+  protect,
+  upload.single('image'),
+  (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: 'No image file provided' });
     }
-
-    const filePath = `/uploads/${req.file.filename}`
-const fullUrl  = `${req.protocol}://${req.get('host')}${filePath}`
-res.status(200).json({
-  message: 'Image uploaded successfully',
-  image: fullUrl,
-})
-
-  });
-});
+    // Build a URL under your static /uploads mount
+    const imageUrl = `/uploads/${req.file.filename}`;
+    return res.status(200).json({
+      message: 'Image uploaded successfully',
+      image: imageUrl,
+    });
+  }
+);
 
 
 router.post(
@@ -295,7 +287,7 @@ router.post('/',  protect, (req, res) => {
 
     res.status(200).json({
       message: 'Image uploaded successfully',
-      image: `/${req.file.path}`,
+      image: fullUrl,
     });
   });
 });
