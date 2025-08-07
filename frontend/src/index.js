@@ -12,7 +12,7 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { CurrencyProvider } from './components/CurrencyContext';
+// import { CurrencyProvider } from './components/CurrencyContext';
 import PrivateRoute from './components/PrivateRoute';
 import AdminRoute from './components/AdminRoute';
 import HomeScreen from './screens/HomeScreen';
@@ -33,6 +33,7 @@ import UserEditScreen from './screens/admin/UserEditScreen';
 import store from './store';
 import { Provider } from 'react-redux';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
+import { CurrencyContext, CurrencyProvider } from './components/CurrencyContext';
 import WishlistScreen from './screens/Wishlist';
 import NotFoundScreen from './screens/Notfound';
 import VerifyEmailScreen from './screens/VerifyOtp';
@@ -58,7 +59,7 @@ import ShipOrderScreen from './screens/ShipOrderscreen';
 import SellerOrdersScreen from './screens/SellerOrdersScreen';
 import AdminDisputesScreen from './screens/admin/AdminDisputesScreen';
 
-
+const SUPPORTED_PAYPAL = ['USD','EUR','GBP','JPY'];
 const router = createBrowserRouter(
   createRoutesFromElements(
     
@@ -127,16 +128,36 @@ const router = createBrowserRouter(
   )
 );
 
+const clientId = process.env.REACT_APP_PAYPAL_CLIENT_ID
+
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <HelmetProvider>
       <Provider store={store}>
-        <PayPalScriptProvider deferLoading={true}>
-          <CurrencyProvider>
-            <RouterProvider router={router} />
-          </CurrencyProvider>
-        </PayPalScriptProvider>
+        <CurrencyProvider>
+          <CurrencyContext.Consumer>
+            {({ currency }) => {
+              const ppCurrency = SUPPORTED_PAYPAL.includes(currency)
+                ? currency
+                : 'USD';
+              return (
+                <PayPalScriptProvider
+                  options={{
+                    'client-id': clientId,
+                    currency: ppCurrency,
+                    intent: 'capture',
+                    components: 'buttons',
+                  }}
+                  deferLoading={false}
+                >
+                  <RouterProvider router={router} />
+                </PayPalScriptProvider>
+              );
+            }}
+          </CurrencyContext.Consumer>
+        </CurrencyProvider>
       </Provider>
     </HelmetProvider>
   </React.StrictMode>

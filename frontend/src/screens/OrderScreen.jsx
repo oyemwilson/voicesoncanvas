@@ -6,7 +6,8 @@ import { toast } from 'react-toastify';
 // Paystack
 import { PaystackButton } from 'react-paystack';
 // PayPal
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { PayPalButtons } from '@paypal/react-paypal-js';
+
 // Stripe
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -24,49 +25,23 @@ import {
   useUpdateDisputeMutation,
 } from '../slices/ordersApiSlice';
 import { useGetPaystackPublicKeyQuery } from '../slices/configApiSlice';
-
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
-
-const StripeCheckoutForm = ({ orderId, payOrder, refetch }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-
-  const submitHandler = async (e) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-    const card = elements.getElement(CardElement);
-    const { error, paymentMethod } = await stripe.createPaymentMethod({ type: 'card', card });
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    try {
-      await payOrder({ orderId, paymentGateway: 'stripe', paymentMethodId: paymentMethod.id }).unwrap();
-      toast.success('Stripe payment successful!');
-      refetch();
-    } catch (err) {
-      toast.error(err?.data?.message || err.error);
-    }
-  };
-
-  return (
-    <form onSubmit={submitHandler} className="mt-4">
-      <CardElement className="p-3 border rounded" />
-      <button
-        type="submit"
-        disabled={!stripe}
-        className="mt-3 w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
-      >
-        Pay with Stripe
-      </button>
-    </form>
-  );
-};
+import { useContext } from 'react';
+import { CurrencyContext } from '../components/CurrencyContext';
 
 const OrderScreen = () => {
-  const SERVICE_FEE = 50;
+  // % service fee
+  const SERVICE_FEE_PERCENT = 0.05;
+  // flat $35 shipping (will be converted by your rate)
+  const SHIPPING_FLAT_USD = 35;
+
   const { id: orderId } = useParams();
   const { userInfo } = useSelector((state) => state.auth);
+
+  // pull in your currency & rates
+  const { currency, rates } = useContext(CurrencyContext);
+  const rate = rates[currency] || 1;
+  const symbolMap = { NGN:'₦', USD:'$', EUR:'€', GBP:'£', JPY:'¥' };
+  const symbol = symbolMap[currency] || currency;
 
   const {
     data: order,
@@ -93,6 +68,30 @@ const OrderScreen = () => {
   if (isLoading || loadingPaystackKey || loadingPaypalKey) return <Loader />;
   if (error) return <Message variant="danger">{error?.data?.message}</Message>;
 
+  // Fixed currency calculations
+  const itemsTotalLocal = order.itemsPrice * rate;
+  const serviceFeeLocal = itemsTotalLocal * SERVICE_FEE_PERCENT;
+  // Convert $35 USD to current currency
+  let shippingLocal;
+  if (currency === 'USD') {
+    shippingLocal = SHIPPING_FLAT_USD;
+  } else {
+    // Convert USD to NGN first, then to target currency
+    const usdToNgnRate = 1 / rates['USD']; // 1 USD = how many NGN
+    const shippingInNgn = SHIPPING_FLAT_USD * usdToNgnRate; // $35 in NGN
+    shippingLocal = shippingInNgn * rate; // Convert NGN to target currency
+  }
+  const taxLocal = order.taxPrice * rate;
+  const grandTotalLocal = itemsTotalLocal + serviceFeeLocal + shippingLocal + taxLocal;
+
+  // USD totals for PayPal - convert from NGN to USD
+  const usdRate = rates['USD']; // 0.00066 (1 NGN = 0.00066 USD)
+  const itemsTotalUSD = order.itemsPrice * usdRate;
+  const serviceFeeUSD = itemsTotalUSD * SERVICE_FEE_PERCENT;
+  const taxUSD = order.taxPrice * usdRate;
+  const shippingUSD = SHIPPING_FLAT_USD;
+  const grandTotalUSD = (itemsTotalUSD + serviceFeeUSD + shippingUSD + taxUSD).toFixed(2);
+
   // statuses
   const isPaid      = order.isPaid;
   const isShipped   = order.isShipped;
@@ -105,7 +104,7 @@ const OrderScreen = () => {
 
   const paystackProps = {
     email: order.user.email,
-    amount: order.totalPrice * 100,
+    amount: Math.round(grandTotalLocal * 100), // Paystack expects kobo for NGN
     publicKey: paystackKey.publicKey,
     text: 'Pay with Paystack',
     onSuccess: async (ref) => {
@@ -219,7 +218,7 @@ const OrderScreen = () => {
                   <p className="text-sm text-gray-600">Packaging: {order.packagingOption}</p>
                 </div>
                 <div className="text-gray-700">
-                  {item.qty} x ₦{item.price} = ₦{(item.qty * item.price).toFixed(2)}
+                  {item.qty} x {symbol}{(item.price * rate).toFixed(2)} = {symbol}{(item.qty * item.price * rate).toFixed(2)}
                 </div>
               </div>
             ))}
@@ -235,53 +234,72 @@ const OrderScreen = () => {
                 <span>Packaging Option</span>
                 <span>{order.packagingOption}</span>
               </div>
+
               <div className="flex justify-between">
-                <span>Service Fee</span>
-                <span>₦{SERVICE_FEE}</span>
+                <span>Items</span>
+                <span>{symbol}{itemsTotalLocal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between"><span>Items</span><span>₦{order.itemsPrice}</span></div>
-              <div className="flex justify-between"><span>Shipping</span><span>₦{order.shippingPrice}</span></div>
-              <div className="flex justify-between"><span>Tax</span><span>₦{order.taxPrice}</span></div>
-              <div className="flex justify-between font-bold text-lg"><span>Total</span><span>₦{order.totalPrice + SERVICE_FEE}</span></div>
+
+              <div className="flex justify-between">
+                <span>Service Fee (5%)</span>
+                <span>{symbol}{serviceFeeLocal.toFixed(2)}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Shipping ($35 USD)</span>
+                <span>{symbol}{shippingLocal.toFixed(2)}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Tax</span>
+                <span>{symbol}{taxLocal.toFixed(2)}</span>
+              </div>
+
+              <div className="flex justify-between font-bold text-lg">
+                <span>Total</span>
+                <span>{symbol}{grandTotalLocal.toFixed(2)}</span>
+              </div>
             </div>
 
-            {/* ── ACTIONS ── */}
-            {/* PAYMENT */}
+            {/* ── PAYMENT ACTIONS ── */}
             {!isPaid && isBuyer && (!hasOpenDispute || isDisputeResolved) && (
               <>
-                <PaystackButton
-                  {...paystackProps}
-                  className="w-full mb-2 bg-green-600 hover:bg-green-700 text-white py-2 rounded"
-                />
-                {paypalKey?.clientId && (
-                  <PayPalScriptProvider options={{ 'client-id': paypalKey.clientId }}>
-                    <div className="mb-2">
-                      <PayPalButtons
-                        style={{ layout: 'vertical' }}
-                        createOrder={(data, actions) =>
-                          actions.order.create({
-                            purchase_units: [{ amount: { currency_code: 'NGN', value: order.totalPrice.toString() } }],
-                          })
-                        }
-                        onApprove={async (data, actions) => {
-                          const details = await actions.order.capture();
-                          toast.success('PayPal payment successful!');
-                          await payOrder({
-                            orderId,
-                            paymentGateway: 'paypal',
-                            orderIdOnGateway: data.orderID,
-                            payerID: data.payerID,
-                            paymentDetails: details,
-                          }).unwrap();
-                          refetch();
-                        }}
-                      />
-                    </div>
-                  </PayPalScriptProvider>
+                {/* Paystack - Only for NGN */}
+                {currency === 'NGN' && (
+                  <PaystackButton
+                    {...paystackProps}
+                    className="w-full mb-4 bg-green-600 hover:bg-green-700 text-white py-2 rounded"
+                  />
                 )}
-                <Elements stripe={stripePromise}>
-                  <StripeCheckoutForm orderId={orderId} payOrder={payOrder} refetch={refetch} />
-                </Elements>
+
+                {/* PayPal - USD equivalent */}
+                <PayPalButtons
+                  style={{ layout: 'vertical', tagline: false }}
+                  createOrder={(data, actions) =>
+                    actions.order.create({
+                      purchase_units: [{
+                        amount: {
+                          currency_code: 'USD',
+                          value: grandTotalUSD
+                        },
+                      }],
+                    })
+                  }
+                  onApprove={async (data, actions) => {
+                    const details = await actions.order.capture();
+                    await payOrder({
+                      orderId,
+                      paymentGateway: 'paypal',
+                      orderIdOnGateway: data.orderID,
+                      payerID: data.payerID,
+                      paymentDetails: details,
+                    }).unwrap();
+                    toast.success('PayPal payment successful!');
+                    refetch();
+                  }}
+                  onCancel={() => toast.info('PayPal payment cancelled')}
+                  onError={(err) => toast.error('PayPal error: ' + err.message)}
+                />
               </>
             )}
 
@@ -341,14 +359,6 @@ const OrderScreen = () => {
                 </button>
               )
             )}
-
-            {/* BUYER RESOLVE
-            {isBuyer && hasOpenDispute && (
-              <button onClick={handleResolve} disabled={loadingUpdate}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded">
-                {loadingUpdate ? 'Resolving…' : 'Resolve Dispute'}
-              </button>
-            )} */}
 
             {/* ADMIN RESOLVE */}
             {isAdmin && hasOpenDispute && (

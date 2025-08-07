@@ -1,110 +1,103 @@
-import path from 'path';
-import fs from 'fs';
 import express from 'express';
 import multer from 'multer';
-import asyncHandler from '../middleware/asyncHandler.js';   // ✅ ADD THIS LINE
+import multerS3 from 'multer-s3';
+import AWS from 'aws-sdk';
+import asyncHandler from '../middleware/asyncHandler.js';
 import { protect } from '../middleware/authMiddleware.js';
-import User from '../models/userModel.js';                  // ✅ also make sure you import your User model
-import { sendNotificationEmail} from '../utils/sendEmail.js';
-
+import User from '../models/userModel.js';
+import { sendNotificationEmail } from '../utils/sendEmail.js';
+import path from 'path';
+import dotenv from 'dotenv';
 
 const router = express.Router();
 
-const uploadDir = path.join(path.resolve(), 'uploads');
 
-// Ensure it exists (both dev & prod):
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log(`Created uploads directory at ${uploadDir}`);
+dotenv.config();
+// Configure AWS S3 client
+const {
+  AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY,
+  AWS_REGION = 'eu-north-1',
+  S3_BUCKET_NAME,
+  ADMIN_EMAIL,
+  ADMIN_NAME,
+} = process.env;
+
+if (!S3_BUCKET_NAME) {
+  throw new Error('⚠️  Environment variable S3_BUCKET_NAME is not set');
 }
 
-// Then your Multer storage…
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, uploadDir);
+// Configure AWS S3 client
+const s3 = new AWS.S3({
+  credentials: {
+    accessKeyId:     AWS_ACCESS_KEY_ID,
+    secretAccessKey: AWS_SECRET_ACCESS_KEY,
   },
-  filename(req, file, cb) {
-    cb(
-      null,
-      `${file.fieldname}-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`
-    );
-  },
+  region: AWS_REGION,
 });
 
-function fileFilter(req, file, cb) {
-  const filetypes = /jpe?g|png|webp/;
-  const mimetypes = /image\/jpe?g|image\/png|image\/webp/;
-
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = mimetypes.test(file.mimetype);
-
-  if (extname && mimetype) {
-    cb(null, true);
-  } else {
-    cb(new Error('Images only! Please upload JPEG, PNG, or WebP files.'), false);
-  }
-}
-
-const upload = multer({ 
-  storage, 
-  fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB per file
-    files: 10 // Maximum 10 files
-  }
+// Multer-S3 storage configuration
+const upload = multer({
+  storage: multerS3({
+    s3,
+    bucket: S3_BUCKET_NAME,
+    acl: 'public-read',
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    metadata: (_req, file, cb) => cb(null, { fieldName: file.fieldname }),
+    key: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      const filename = `${file.fieldname}-${Date.now()}${ext}`;
+      cb(null, filename);
+    },
+  }),
+  fileFilter: (_req, file, cb) => {
+    const allowed = /jpe?g|png|webp/;
+    const ext = path.extname(file.originalname).toLowerCase();
+    const mime = file.mimetype;
+    if (allowed.test(ext) && allowed.test(mime)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Images only! Please upload JPEG, PNG, or WebP files.'), false);
+    }
+  },
+  limits: { fileSize: 5 * 1024 * 1024, files: 10 },
 });
+
+
 
 // Single image upload
-const uploadSingleImage = upload.single('image');
-
-// Multiple images upload (max 10)
-const uploadMultipleImages = upload.array('images', 10);
-
-// Single image upload route
 router.post(
   '/single',
   protect,
   upload.single('image'),
   (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No image file provided' });
-    }
-    // Build a URL under your static /uploads mount
-    const imageUrl = `/uploads/${req.file.filename}`;
-    return res.status(200).json({
-      message: 'Image uploaded successfully',
-      image: imageUrl,
-    });
+    if (!req.file) return res.status(400).json({ message: 'No image file provided' });
+    res.status(200).json({ message: 'Image uploaded successfully', image: req.file.location });
   }
 );
 
-
+// Request seller with photo upload
 router.post(
   '/request-seller',
   protect,
   upload.single('photo'),
   asyncHandler(async (req, res) => {
     console.log('📥 Seller request hit:', req.body, req.file);
-
     const { bio, artistStatement, location } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) {
       res.status(404);
       throw new Error('User not found');
     }
-
-    // 1️⃣ Save artist profile and set pending flags
     user.artistProfile = {
       bio,
       artistStatement,
       location,
-      photo: `/uploads/${req.file.filename}`,
+      photo: req.file ? req.file.location : undefined,
     };
-    user.isSeller       = true;
+    user.isSeller = true;
     user.sellerApproved = false;
     await user.save();
-
-    // 2️⃣ Fetch admins
     let admins = await User.find({ isAdmin: true }).select('email name');
     if (!admins.length && process.env.ADMIN_EMAIL) {
       admins = [{ email: process.env.ADMIN_EMAIL, name: process.env.ADMIN_NAME || 'Admin' }];
@@ -114,134 +107,57 @@ router.post(
       console.error('❌ No admins found and no ADMIN_EMAIL configured');
       return res.json({ message: 'Seller request saved, but no admin can be notified.' });
     }
-
-    // 3️⃣ Notify each admin
     await Promise.all(
       admins.map(async (admin) => {
-        console.log(`📨 Emailing admin ${admin.email}`);
-        try {
-          await sendNotificationEmail({
-            to: admin.email,
-            type: 'sellerApprovalRequest',    // must match your template key
-            orderData: {
-              userName:  user.name,
-              userEmail: user.email,
-              adminName: admin.name,
-            },
-          });
-          console.log(`✅ Email sent to ${admin.email}`);
-        } catch (err) {
-          console.error(`❌ Failed to email ${admin.email}:`, err.message || err);
-        }
+        await sendNotificationEmail({
+          to: admin.email,
+          type: 'sellerApprovalRequest',
+          orderData: { userName: user.name, userEmail: user.email, adminName: admin.name },
+        });
       })
     );
-
-    // 4️⃣ Notify the user that their request is processing
-    try {
-      await sendNotificationEmail({
-        to: user.email,
-        type: 'sellerRequestProcessing',   // must match your template key
-        orderData: { userName: user.name },
-      });
-      console.log(`✅ Processing email sent to user ${user.email}`);
-    } catch (err) {
-      console.error(`❌ Failed to email user ${user.email}:`, err.message || err);
-    }
-
-    // 5️⃣ Final response
-    res.json({
-      message: 'Seller request submitted successfully. Admins have been notified.',
+    await sendNotificationEmail({
+      to: user.email,
+      type: 'sellerRequestProcessing',
+      orderData: { userName: user.name },
     });
+    res.json({ message: 'Seller request submitted successfully. Admins have been notified.' });
   })
 );
 
-// Multiple images upload route
-router.post('/multiple',  protect, (req, res) => {
-  uploadMultipleImages(req, res, function (err) {
-    if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_COUNT') {
-        return res.status(400).json({ message: 'Too many files. Maximum 10 files allowed.' });
-      }
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ message: 'File too large. Maximum size is 5MB per file.' });
-      }
-      return res.status(400).json({ message: err.message });
-    } else if (err) {
-      return res.status(400).json({ message: err.message });
-    }
+// Multiple images upload
+router.post(
+  '/multiple',
+  protect,
+  upload.array('images', 10),
+  (req, res) => {
+    if (!req.files || !req.files.length) return res.status(400).json({ message: 'No image files provided' });
+    const images = req.files.map((file) => file.location);
+    res.status(200).json({ message: `${images.length} image(s) uploaded successfully`, images });
+  }
+);
 
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: 'No image files provided' });
-    }
-
-    const uploadedImages = req.files.map(file => ({
-      filename: file.filename,
-      path: `/${file.path}`,
-      size: file.size,
-      mimetype: file.mimetype
-    }));
-
-    res.status(200).json({
-      message: `${req.files.length} image(s) uploaded successfully`,
-      images: uploadedImages,
-      count: req.files.length
-    });
-  });
-});
-
-// Mixed fields upload route (for forms with both single and multiple image fields)
-router.post('/mixed',  protect, (req, res) => {
-  const uploadMixed = upload.fields([
+// Mixed fields upload
+router.post(
+  '/mixed',
+  protect,
+  upload.fields([
     { name: 'mainImage', maxCount: 1 },
-    { name: 'gallery', maxCount: 9 }
-  ]);
-
-  uploadMixed(req, res, function (err) {
-    if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_COUNT') {
-        return res.status(400).json({ message: 'Too many files. Maximum 1 main image and 9 gallery images.' });
-      }
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ message: 'File too large. Maximum size is 5MB per file.' });
-      }
-      return res.status(400).json({ message: err.message });
-    } else if (err) {
-      return res.status(400).json({ message: err.message });
-    }
-
-    const result = {
-      message: 'Files uploaded successfully',
-      files: {}
-    };
-
-    if (req.files.mainImage && req.files.mainImage.length > 0) {
-      result.files.mainImage = {
-        filename: req.files.mainImage[0].filename,
-        path: `/${req.files.mainImage[0].path}`,
-        size: req.files.mainImage[0].size,
-        mimetype: req.files.mainImage[0].mimetype
-      };
-    }
-
-    if (req.files.gallery && req.files.gallery.length > 0) {
-      result.files.gallery = req.files.gallery.map(file => ({
-        filename: file.filename,
-        path: `/${file.path}`,
-        size: file.size,
-        mimetype: file.mimetype
-      }));
-    }
-
-    if (!req.files.mainImage && !req.files.gallery) {
+    { name: 'gallery', maxCount: 9 },
+  ]),
+  (req, res) => {
+    const files = req.files;
+    if (!files || (!files.mainImage && !files.gallery)) {
       return res.status(400).json({ message: 'No image files provided' });
     }
+    const result = {};
+    if (files.mainImage) result.mainImage = files.mainImage[0].location;
+    if (files.gallery) result.gallery = files.gallery.map((f) => f.location);
+    res.status(200).json({ message: 'Files uploaded successfully', files: result });
+  }
+);
 
-    result.totalFiles = (req.files.mainImage?.length || 0) + (req.files.gallery?.length || 0);
-    
-    res.status(200).json(result);
-  });
-});
-
+// Artist profile update with photo
 router.put(
   '/artist-profile',
   protect,
@@ -253,43 +169,27 @@ router.put(
       res.status(404);
       throw new Error('User not found');
     }
-
     user.artistProfile = {
       ...user.artistProfile,
       bio,
       artistStatement,
       location,
-      photo: req.file ? `/uploads/${req.file.filename}` : user.artistProfile.photo,
+      photo: req.file ? req.file.location : user.artistProfile.photo,
     };
-
     await user.save();
-
     res.json({ message: 'Profile updated successfully', user });
   })
 );
 
-
-// Legacy route - maintains backward compatibility
-router.post('/',  protect, (req, res) => {
-  uploadSingleImage(req, res, function (err) {
-    if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ message: 'File too large. Maximum size is 5MB.' });
-      }
-      return res.status(400).json({ message: err.message });
-    } else if (err) {
-      return res.status(400).json({ message: err.message });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ message: 'No image file provided' });
-    }
-
-    res.status(200).json({
-      message: 'Image uploaded successfully',
-      image: fullUrl,
-    });
-  });
-});
+// Legacy single upload route
+router.post(
+  '/',
+  protect,
+  upload.single('image'),
+  (req, res) => {
+    if (!req.file) return res.status(400).json({ message: 'No image file provided' });
+    res.status(200).json({ message: 'Image uploaded successfully', image: req.file.location });
+  }
+);
 
 export default router;
