@@ -6,73 +6,81 @@ import asyncHandler from '../middleware/asyncHandler.js';
 import { protect } from '../middleware/authMiddleware.js';
 import User from '../models/userModel.js';
 import { sendNotificationEmail } from '../utils/sendEmail.js';
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import path from 'path';
 import dotenv from 'dotenv';
 
 const router = express.Router();
 
-
 dotenv.config();
-// Configure AWS S3 client
-const {
-  AWS_ACCESS_KEY_ID,
-  AWS_SECRET_ACCESS_KEY,
-  AWS_REGION = 'eu-north-1',
-  S3_BUCKET_NAME,
-  ADMIN_EMAIL,
-  ADMIN_NAME,
-} = process.env;
 
-if (!S3_BUCKET_NAME) {
-  throw new Error('⚠️  Environment variable S3_BUCKET_NAME is not set');
-}
+// Validate required environment variables
 
-// Configure AWS S3 client
-const s3 = new AWS.S3({
-  credentials: {
-    accessKeyId:     AWS_ACCESS_KEY_ID,
-    secretAccessKey: AWS_SECRET_ACCESS_KEY,
-  },
-  region: AWS_REGION,
+/* 1. Configure Cloudinary once */
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Multer-S3 storage configuration
-const upload = multer({
-  storage: multerS3({
-    s3,
-    bucket: S3_BUCKET_NAME,
-    acl: 'public-read',
-    contentType: multerS3.AUTO_CONTENT_TYPE,
-    metadata: (_req, file, cb) => cb(null, { fieldName: file.fieldname }),
-    key: (_req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      const filename = `${file.fieldname}-${Date.now()}${ext}`;
-      cb(null, filename);
-    },
-  }),
-  fileFilter: (_req, file, cb) => {
-    const allowed = /jpe?g|png|webp/;
-    const ext = path.extname(file.originalname).toLowerCase();
-    const mime = file.mimetype;
-    if (allowed.test(ext) && allowed.test(mime)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Images only! Please upload JPEG, PNG, or WebP files.'), false);
-    }
+/* 2. Tell multer to send files straight to Cloudinary */
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'voicesoncanvas',              // will be created automatically
+    allowed_formats: ['jpg','jpeg','png','webp'],
+    transformation: [{ quality:'auto', fetch_format:'auto' }], // WebP/AVIF + compression
   },
-  limits: { fileSize: 5 * 1024 * 1024, files: 10 },
 });
 
-
-
+const upload = multer({ storage });
 // Single image upload
+// Replace your /single route with this more robust version:
+
 router.post(
   '/single',
   protect,
-  upload.single('image'),
-  (req, res) => {
-    if (!req.file) return res.status(400).json({ message: 'No image file provided' });
-    res.status(200).json({ message: 'Image uploaded successfully', image: req.file.location });
+  (req, res, next) => {
+    upload.single('image')(req, res, (err) => {
+      if (err) {
+        console.error('❌ Multer error:', err);
+        return handleMulterError(err, req, res, next);
+      }
+      
+      if (!req.file) {
+        console.error('❌ No file in request');
+        return res.status(400).json({ message: 'No image file provided' });
+      }
+      
+      // 🔍 Extract image URL from various possible properties
+      const imageUrl = req.file.location || 
+                      req.file.secure_url || 
+                      req.file.url || 
+                      req.file.path;
+                      
+      const filename = req.file.key || 
+                      req.file.public_id || 
+                      req.file.filename || 
+                      req.file.originalname;
+      
+      console.log('📷 Extracted imageUrl:', imageUrl);
+      console.log('📷 Extracted filename:', filename);
+      
+      if (!imageUrl) {
+        console.error('❌ No valid image URL found in req.file:', Object.keys(req.file));
+        return res.status(500).json({ 
+          message: 'Image upload failed - no URL generated',
+          debug: Object.keys(req.file)
+        });
+      }
+      
+      res.status(200).json({ 
+        message: 'Image uploaded successfully', 
+        image: imageUrl,
+        filename: filename
+      });
+    });
   }
 );
 
@@ -80,60 +88,85 @@ router.post(
 router.post(
   '/request-seller',
   protect,
-  upload.single('photo'),
-  asyncHandler(async (req, res) => {
-    console.log('📥 Seller request hit:', req.body, req.file);
-    const { bio, artistStatement, location } = req.body;
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      res.status(404);
-      throw new Error('User not found');
-    }
-    user.artistProfile = {
-      bio,
-      artistStatement,
-      location,
-      photo: req.file ? req.file.location : undefined,
-    };
-    user.isSeller = true;
-    user.sellerApproved = false;
-    await user.save();
-    let admins = await User.find({ isAdmin: true }).select('email name');
-    if (!admins.length && process.env.ADMIN_EMAIL) {
-      admins = [{ email: process.env.ADMIN_EMAIL, name: process.env.ADMIN_NAME || 'Admin' }];
-      console.warn('⚠️ No admins in DB — falling back to ADMIN_EMAIL');
-    }
-    if (!admins.length) {
-      console.error('❌ No admins found and no ADMIN_EMAIL configured');
-      return res.json({ message: 'Seller request saved, but no admin can be notified.' });
-    }
-    await Promise.all(
-      admins.map(async (admin) => {
+  (req, res, next) => {
+    upload.single('photo')(req, res, async (err) => {
+      if (err) return handleMulterError(err, req, res, next);
+      
+      try {
+        console.log('📥 Seller request hit:', req.body, req.file);
+        const { bio, artistStatement, location } = req.body;
+        const user = await User.findById(req.user._id);
+        if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+        
+        user.artistProfile = {
+          bio,
+          artistStatement,
+          location,
+          photo: req.file ? req.file.location : undefined,
+        };
+        user.isSeller = true;
+        user.sellerApproved = false;
+        await user.save();
+        
+        let admins = await User.find({ isAdmin: true }).select('email name');
+        if (!admins.length && process.env.ADMIN_EMAIL) {
+          admins = [{ email: process.env.ADMIN_EMAIL, name: process.env.ADMIN_NAME || 'Admin' }];
+          console.warn('⚠️ No admins in DB — falling back to ADMIN_EMAIL');
+        }
+        if (!admins.length) {
+          console.error('❌ No admins found and no ADMIN_EMAIL configured');
+          return res.json({ message: 'Seller request saved, but no admin can be notified.' });
+        }
+        
+        await Promise.all(
+          admins.map(async (admin) => {
+            await sendNotificationEmail({
+              to: admin.email,
+              type: 'sellerApprovalRequest',
+              orderData: { userName: user.name, userEmail: user.email, adminName: admin.name },
+            });
+          })
+        );
+        
         await sendNotificationEmail({
-          to: admin.email,
-          type: 'sellerApprovalRequest',
-          orderData: { userName: user.name, userEmail: user.email, adminName: admin.name },
+          to: user.email,
+          type: 'sellerRequestProcessing',
+          orderData: { userName: user.name },
         });
-      })
-    );
-    await sendNotificationEmail({
-      to: user.email,
-      type: 'sellerRequestProcessing',
-      orderData: { userName: user.name },
+        
+        res.json({ message: 'Seller request submitted successfully. Admins have been notified.' });
+      } catch (error) {
+        console.error('Seller request error:', error);
+        res.status(500).json({ message: 'Server error processing seller request' });
+      }
     });
-    res.json({ message: 'Seller request submitted successfully. Admins have been notified.' });
-  })
+  }
 );
 
 // Multiple images upload
 router.post(
   '/multiple',
   protect,
-  upload.array('images', 10),
-  (req, res) => {
-    if (!req.files || !req.files.length) return res.status(400).json({ message: 'No image files provided' });
-    const images = req.files.map((file) => file.location);
-    res.status(200).json({ message: `${images.length} image(s) uploaded successfully`, images });
+  (req, res, next) => {
+    upload.array('images', 10)(req, res, (err) => {
+      if (err) return handleMulterError(err, req, res, next);
+      
+      if (!req.files || !req.files.length) {
+        return res.status(400).json({ message: 'No image files provided' });
+      }
+      
+      const images = req.files.map((file) => ({ 
+        url: file.location, 
+        filename: file.key 
+      }));
+      
+      res.status(200).json({ 
+        message: `${images.length} image(s) uploaded successfully`, 
+        images 
+      });
+    });
   }
 );
 
@@ -141,19 +174,37 @@ router.post(
 router.post(
   '/mixed',
   protect,
-  upload.fields([
-    { name: 'mainImage', maxCount: 1 },
-    { name: 'gallery', maxCount: 9 },
-  ]),
-  (req, res) => {
-    const files = req.files;
-    if (!files || (!files.mainImage && !files.gallery)) {
-      return res.status(400).json({ message: 'No image files provided' });
-    }
-    const result = {};
-    if (files.mainImage) result.mainImage = files.mainImage[0].location;
-    if (files.gallery) result.gallery = files.gallery.map((f) => f.location);
-    res.status(200).json({ message: 'Files uploaded successfully', files: result });
+  (req, res, next) => {
+    upload.fields([
+      { name: 'mainImage', maxCount: 1 },
+      { name: 'gallery', maxCount: 9 },
+    ])(req, res, (err) => {
+      if (err) return handleMulterError(err, req, res, next);
+      
+      const files = req.files;
+      if (!files || (!files.mainImage && !files.gallery)) {
+        return res.status(400).json({ message: 'No image files provided' });
+      }
+      
+      const result = {};
+      if (files.mainImage) {
+        result.mainImage = { 
+          url: files.mainImage[0].location, 
+          filename: files.mainImage[0].key 
+        };
+      }
+      if (files.gallery) {
+        result.gallery = files.gallery.map((f) => ({ 
+          url: f.location, 
+          filename: f.key 
+        }));
+      }
+      
+      res.status(200).json({ 
+        message: 'Files uploaded successfully', 
+        files: result 
+      });
+    });
   }
 );
 
@@ -161,35 +212,71 @@ router.post(
 router.put(
   '/artist-profile',
   protect,
-  upload.single('photo'),
-  asyncHandler(async (req, res) => {
-    const { bio, artistStatement, location } = req.body;
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      res.status(404);
-      throw new Error('User not found');
-    }
-    user.artistProfile = {
-      ...user.artistProfile,
-      bio,
-      artistStatement,
-      location,
-      photo: req.file ? req.file.location : user.artistProfile.photo,
-    };
-    await user.save();
-    res.json({ message: 'Profile updated successfully', user });
-  })
+  (req, res, next) => {
+    upload.single('photo')(req, res, async (err) => {
+      if (err) return handleMulterError(err, req, res, next);
+      
+      try {
+        const { bio, artistStatement, location } = req.body;
+        const user = await User.findById(req.user._id);
+        if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+        
+        user.artistProfile = {
+          ...user.artistProfile,
+          bio,
+          artistStatement,
+          location,
+          photo: req.file ? req.file.location : user.artistProfile?.photo,
+        };
+        await user.save();
+        res.json({ message: 'Profile updated successfully', user });
+      } catch (error) {
+        console.error('Profile update error:', error);
+        res.status(500).json({ message: 'Server error updating profile' });
+      }
+    });
+  }
 );
 
 // Legacy single upload route
 router.post(
   '/',
   protect,
-  upload.single('image'),
-  (req, res) => {
-    if (!req.file) return res.status(400).json({ message: 'No image file provided' });
-    res.status(200).json({ message: 'Image uploaded successfully', image: req.file.location });
+  (req, res, next) => {
+    upload.single('image')(req, res, (err) => {
+      if (err) return handleMulterError(err, req, res, next);
+      
+      if (!req.file) {
+        return res.status(400).json({ message: 'No image file provided' });
+      }
+      
+      res.status(200).json({ 
+        message: 'Image uploaded successfully', 
+        image: req.file.location,
+        filename: req.file.key 
+      });
+    });
   }
 );
+
+// Health check route to verify S3 connection
+router.get('/health', asyncHandler(async (req, res) => {
+  try {
+    await s3.headBucket({ Bucket: process.env.S3_BUCKET_NAME }).promise();
+    res.json({ 
+      status: 'OK', 
+      bucket: process.env.S3_BUCKET_NAME, 
+      region: process.env.AWS_REGION 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'ERROR', 
+      message: 'S3 bucket not accessible',
+      error: error.message 
+    });
+  }
+}));
 
 export default router;
