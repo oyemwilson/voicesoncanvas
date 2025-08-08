@@ -156,3 +156,14 @@ table th {
   display: none;
 }
 
+/* inactive bullets */
+.swiper-pagination-bullet {
+  background: #888 !important;   /* grey */
+  opacity: 0.7 !important;
+}
+
+/* active bullet */
+.swiper-pagination-bullet-active {
+  background: #FFD700 !important; /* gold */
+  opacity: 1 !important;
+}

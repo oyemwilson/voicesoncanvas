@@ -1,4 +1,3 @@
-
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLogoutMutation } from '../slices/usersApiSlice';
@@ -11,7 +10,7 @@ import { CurrencyContext } from './CurrencyContext';
 
 // ✅ import hooks to fetch notifications
 import { useGetUnapprovedProductsQuery } from '../slices/productsApiSlice';
-import { useGetSellerRequestsQuery } from '../slices/usersApiSlice'; // make sure you’ve implemented this!
+import { useGetSellerRequestsQuery } from '../slices/usersApiSlice'; // make sure you've implemented this!
 import { useGetDisputesQuery, useGetSellerOpenSalesQuery } from '../slices/ordersApiSlice';
 
 
@@ -53,11 +52,19 @@ const { data: newSales = [] } = useGetSellerOpenSalesQuery(undefined, {
     : 0;
 const newSalesCount       = newSales.length;
 
+  // ✅ Helper functions to close menus
+  const closeAllMenus = () => {
+    setMobileMenuOpen(false);
+    setUserDropdownOpen(false);
+    setAdminDropdownOpen(false);
+  };
+
   const logoutHandler = async () => {
     try {
       await logoutApiCall().unwrap();
       dispatch(logout());
       dispatch(resetCart());
+      closeAllMenus(); // Close menus before navigating
       navigate('/login');
     } catch (err) {
       console.error(err);
@@ -84,6 +91,7 @@ const newSalesCount       = newSales.length;
         <Link
           to="/request-seller"
           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          onClick={closeAllMenus}
         >
           Request to Sell
         </Link>
@@ -101,6 +109,7 @@ const newSalesCount       = newSales.length;
         <Link
           to={`/artists/${userInfo._id}`}
           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          onClick={closeAllMenus}
         >
           View Artist Profile
         </Link>
@@ -156,7 +165,7 @@ const newSalesCount       = newSales.length;
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               <FaBars className="w-6 h-6" />
             </button>
-            <Link to="/wishlist">
+            <Link to="/wishlist" onClick={closeAllMenus}>
               <FaHeart className="w-5 h-5" />
             </Link>
           </div>
@@ -173,6 +182,7 @@ const newSalesCount       = newSales.length;
           <Link
             to="/"
             className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center"
+            onClick={closeAllMenus}
           >
             <img
               src="/images/Logo.png" // ✅ path from public folder
@@ -184,12 +194,12 @@ const newSalesCount       = newSales.length;
 
           {/* RIGHT ICONS */}
           <div className="flex items-center space-x-6 ml-auto md:pe-32">
-            <Link to="/wishlist" className="hidden md:inline-block">
+            <Link to="/wishlist" className="hidden md:inline-block" onClick={closeAllMenus}>
               <FaHeart className="w-5 h-5 text-black" />
             </Link>
 
             {/* CART */}
-            <Link to="/cart" className="relative">
+            <Link to="/cart" className="relative" onClick={closeAllMenus}>
               <FaShoppingCart className="w-5 h-5 text-black" />
               {cartItems.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs font-bold rounded-md px-1.5 py-0.5">
@@ -212,7 +222,7 @@ const newSalesCount       = newSales.length;
  </button>
                 {userDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-44 text-black bg-white rounded-md shadow-lg border z-50">
-                    <Link to="/profile" className="block px-4 py-2 text-sm hover:bg-gray-100">
+                    <Link to="/profile" className="block px-4 py-2 text-sm hover:bg-gray-100" onClick={closeAllMenus}>
                       Profile
                     </Link>
                     {renderSellerMenuItem()}
@@ -220,6 +230,7 @@ const newSalesCount       = newSales.length;
                   <Link
                     to="/seller/orders"
                     className="flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100"
+                    onClick={closeAllMenus}
                   >
                     <span>My Sales</span>
                     {newSalesCount > 0 && (
@@ -239,7 +250,7 @@ const newSalesCount       = newSales.length;
                 )}
               </div>
             ) : (
-              <Link to="/login">
+              <Link to="/login" onClick={closeAllMenus}>
                 <FaUser className="w-5 h-5" />
               </Link>
             )}
@@ -258,25 +269,26 @@ const newSalesCount       = newSales.length;
                 </button>
                 {adminDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border text-black z-50">
-                    <Link to="/admin/productlist" className="block px-4 py-2 text-sm hover:bg-gray-100">
+                    <Link to="/admin/productlist" className="block px-4 py-2 text-sm hover:bg-gray-100" onClick={closeAllMenus}>
                       Products
                     </Link>
-                    <Link to="/admin/orderlist" className="block px-4 py-2 text-sm hover:bg-gray-100">
+                    <Link to="/admin/orderlist" className="block px-4 py-2 text-sm hover:bg-gray-100" onClick={closeAllMenus}>
                       Orders
                     </Link>
-                    <Link to="/admin/userlist" className="block px-4 py-2 text-sm hover:bg-gray-100">
+                    <Link to="/admin/userlist" className="block px-4 py-2 text-sm hover:bg-gray-100" onClick={closeAllMenus}>
                       Users
                     </Link>
-                    <Link to="/admin/featured-products" className="block px-4 py-2 text-sm hover:bg-gray-100">
+                    <Link to="/admin/featured-products" className="block px-4 py-2 text-sm hover:bg-gray-100" onClick={closeAllMenus}>
                       Featured Products
                     </Link>
-                    <Link to="/admin/featured-artists" className="block px-4 py-2 text-sm hover:bg-gray-100">
+                    <Link to="/admin/featured-artists" className="block px-4 py-2 text-sm hover:bg-gray-100" onClick={closeAllMenus}>
                       Featured Artists
                     </Link>
 
                     <Link
                       to="/admin/unapproved-art"
                       className="flex justify-between items-center px-4 py-2 text-sm hover:bg-gray-100"
+                      onClick={closeAllMenus}
                     >
                       Unapproved Art
                       {unapprovedCount > 0 && (
@@ -288,6 +300,7 @@ const newSalesCount       = newSales.length;
                     <Link
                       to="/admin/seller-requests"
                       className="flex items-center justify-between px-4 py-2 text-sm text-black  hover:bg-gray-100 rounded-md"
+                      onClick={closeAllMenus}
                     >
                       <span>Seller Requests</span>
                       {sellerRequestCount > 0 && (
@@ -299,6 +312,7 @@ const newSalesCount       = newSales.length;
                     <Link
                       to="/admin/blogs"
                       className="block px-4 py-2 text-sm hover:bg-gray-100"
+                      onClick={closeAllMenus}
                     >
                       Manage Blogs
                     </Link>
@@ -306,6 +320,7 @@ const newSalesCount       = newSales.length;
                     <Link
                       to="/admin/disputes"
                       className="flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100"
+                      onClick={closeAllMenus}
                     >
                       <span>Disputes</span>
                       {disputeCount > 0 && (
@@ -326,15 +341,15 @@ const newSalesCount       = newSales.length;
       {/* NAV LINKS */}
       <div className="hidden md:flex justify-center border-t border-gray-100 bg-[#faf2e7] ">
         <nav className="flex items-center space-x-8 py-3 text-sm font-medium text-gray-700">
-          <Link to="/" className="hover:text-black">Home</Link>
-          <Link to="/shop" className="hover:text-black">Shop</Link>
-          <Link to="/artists" className="hover:text-black">Artist Profiles</Link>
-          <Link to="/impact" className="hover:text-black">Impact</Link>
-          <Link to="/about" className="hover:text-black">About Us</Link>
-          <Link to="/blogs" className="hover:text-black">Blog</Link>
-          <Link to="/contact" className="hover:text-black">Contact</Link>
+          <Link to="/" className="hover:text-black" onClick={closeAllMenus}>Home</Link>
+          <Link to="/shop" className="hover:text-black" onClick={closeAllMenus}>Shop</Link>
+          <Link to="/artists" className="hover:text-black" onClick={closeAllMenus}>Artist Profiles</Link>
+          <Link to="/impact" className="hover:text-black" onClick={closeAllMenus}>Impact</Link>
+          <Link to="/about" className="hover:text-black" onClick={closeAllMenus}>About Us</Link>
+          <Link to="/blogs" className="hover:text-black" onClick={closeAllMenus}>Blog</Link>
+          <Link to="/contact" className="hover:text-black" onClick={closeAllMenus}>Contact</Link>
           {userInfo && userInfo.isSeller && userInfo.sellerApproved && (
-            <Link to="/upload-art" className="hover:text-black">Upload Art</Link>
+            <Link to="/upload-art" className="hover:text-black" onClick={closeAllMenus}>Upload Art</Link>
           )}
         </nav>
       </div>
@@ -342,15 +357,15 @@ const newSalesCount       = newSales.length;
       {/* MOBILE MENU */}
       {mobileMenuOpen && (
         <nav className="md:hidden bg-[#faf2e7] border-t border-gray-200 px-4 py-3 space-y-2">
-          <Link to="/" className="block hover:text-black">Home</Link>
-          <Link to="/shop" className="block hover:text-black">Shop</Link>
-          <Link to="/artists" className="block hover:text-black">Artist Profiles</Link>
-          <Link to="/impact" className="block hover:text-black">Impact</Link>
-          <Link to="/about" className="block hover:text-black">About Us</Link>
-          <Link to="/blogs" className="block hover:text-black">Blog</Link>
-          <Link to="/contact" className="block hover:text-black">Contact</Link>
+          <Link to="/" className="block hover:text-black" onClick={closeAllMenus}>Home</Link>
+          <Link to="/shop" className="block hover:text-black" onClick={closeAllMenus}>Shop</Link>
+          <Link to="/artists" className="block hover:text-black" onClick={closeAllMenus}>Artist Profiles</Link>
+          <Link to="/impact" className="block hover:text-black" onClick={closeAllMenus}>Impact</Link>
+          <Link to="/about" className="block hover:text-black" onClick={closeAllMenus}>About Us</Link>
+          <Link to="/blogs" className="block hover:text-black" onClick={closeAllMenus}>Blog</Link>
+          <Link to="/contact" className="block hover:text-black" onClick={closeAllMenus}>Contact</Link>
           {userInfo && userInfo.isSeller && userInfo.sellerApproved && (
-            <Link to="/upload-art" className="block hover:text-black">Upload Art</Link>
+            <Link to="/upload-art" className="block hover:text-black" onClick={closeAllMenus}>Upload Art</Link>
           )}
         </nav>
       )}

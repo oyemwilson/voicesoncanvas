@@ -1,43 +1,64 @@
 import express from 'express';
 import multer from 'multer';
-import multerS3 from 'multer-s3';
-import AWS from 'aws-sdk';
 import asyncHandler from '../middleware/asyncHandler.js';
 import { protect } from '../middleware/authMiddleware.js';
 import User from '../models/userModel.js';
 import { sendNotificationEmail } from '../utils/sendEmail.js';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import path from 'path';
 import dotenv from 'dotenv';
 
 const router = express.Router();
 
 dotenv.config();
 
-// Validate required environment variables
-
-/* 1. Configure Cloudinary once */
+// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-/* 2. Tell multer to send files straight to Cloudinary */
+// Configure multer storage for Cloudinary
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: 'voicesoncanvas',              // will be created automatically
-    allowed_formats: ['jpg','jpeg','png','webp'],
-    transformation: [{ quality:'auto', fetch_format:'auto' }], // WebP/AVIF + compression
+    folder: 'voicesoncanvas',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ quality: 'auto', fetch_format: 'auto' }],
   },
 });
 
 const upload = multer({ storage });
-// Single image upload
-// Replace your /single route with this more robust version:
 
+// Error handler for multer errors
+const handleMulterError = (err, req, res, next) => {
+  console.error('Multer error:', err);
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'File too large' });
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ message: 'Too many files' });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({ message: 'Unexpected field name' });
+    }
+  }
+  res.status(500).json({ message: 'Upload error', error: err.message });
+};
+
+// Helper function to extract image URL from file object
+const extractImageUrl = (file) => {
+  return file.path || file.secure_url || file.url || file.location;
+};
+
+// Helper function to extract filename from file object
+const extractFilename = (file) => {
+  return file.public_id || file.key || file.filename || file.originalname;
+};
+
+// Single image upload
 router.post(
   '/single',
   protect,
@@ -53,16 +74,8 @@ router.post(
         return res.status(400).json({ message: 'No image file provided' });
       }
       
-      // 🔍 Extract image URL from various possible properties
-      const imageUrl = req.file.location || 
-                      req.file.secure_url || 
-                      req.file.url || 
-                      req.file.path;
-                      
-      const filename = req.file.key || 
-                      req.file.public_id || 
-                      req.file.filename || 
-                      req.file.originalname;
+      const imageUrl = extractImageUrl(req.file);
+      const filename = extractFilename(req.file);
       
       console.log('📷 Extracted imageUrl:', imageUrl);
       console.log('📷 Extracted filename:', filename);
@@ -96,30 +109,43 @@ router.post(
         console.log('📥 Seller request hit:', req.body, req.file);
         const { bio, artistStatement, location } = req.body;
         const user = await User.findById(req.user._id);
+        
         if (!user) {
           return res.status(404).json({ message: 'User not found' });
         }
         
+        // Extract image URL if file is uploaded
+        let photoUrl = null;
+        if (req.file) {
+          photoUrl = extractImageUrl(req.file);
+        }
+        
+        // Update user profile
         user.artistProfile = {
+          ...user.artistProfile,
           bio,
           artistStatement,
           location,
-          photo: req.file ? req.file.location : undefined,
+          ...(photoUrl && { photo: photoUrl })
         };
+        
         user.isSeller = true;
         user.sellerApproved = false;
         await user.save();
         
+        // Find admins for notification
         let admins = await User.find({ isAdmin: true }).select('email name');
         if (!admins.length && process.env.ADMIN_EMAIL) {
           admins = [{ email: process.env.ADMIN_EMAIL, name: process.env.ADMIN_NAME || 'Admin' }];
           console.warn('⚠️ No admins in DB — falling back to ADMIN_EMAIL');
         }
+        
         if (!admins.length) {
           console.error('❌ No admins found and no ADMIN_EMAIL configured');
           return res.json({ message: 'Seller request saved, but no admin can be notified.' });
         }
         
+        // Send notification emails
         await Promise.all(
           admins.map(async (admin) => {
             await sendNotificationEmail({
@@ -158,8 +184,8 @@ router.post(
       }
       
       const images = req.files.map((file) => ({ 
-        url: file.location, 
-        filename: file.key 
+        url: extractImageUrl(file), 
+        filename: extractFilename(file)
       }));
       
       res.status(200).json({ 
@@ -189,14 +215,14 @@ router.post(
       const result = {};
       if (files.mainImage) {
         result.mainImage = { 
-          url: files.mainImage[0].location, 
-          filename: files.mainImage[0].key 
+          url: extractImageUrl(files.mainImage[0]), 
+          filename: extractFilename(files.mainImage[0])
         };
       }
       if (files.gallery) {
         result.gallery = files.gallery.map((f) => ({ 
-          url: f.location, 
-          filename: f.key 
+          url: extractImageUrl(f), 
+          filename: extractFilename(f)
         }));
       }
       
@@ -219,17 +245,26 @@ router.put(
       try {
         const { bio, artistStatement, location } = req.body;
         const user = await User.findById(req.user._id);
+        
         if (!user) {
           return res.status(404).json({ message: 'User not found' });
         }
         
+        // Extract image URL if file is uploaded
+        let photoUrl = null;
+        if (req.file) {
+          photoUrl = extractImageUrl(req.file);
+        }
+        
+        // Update user profile
         user.artistProfile = {
           ...user.artistProfile,
           bio,
           artistStatement,
           location,
-          photo: req.file ? req.file.location : user.artistProfile?.photo,
+          ...(photoUrl && { photo: photoUrl })
         };
+        
         await user.save();
         res.json({ message: 'Profile updated successfully', user });
       } catch (error) {
@@ -252,28 +287,32 @@ router.post(
         return res.status(400).json({ message: 'No image file provided' });
       }
       
+      const imageUrl = extractImageUrl(req.file);
+      const filename = extractFilename(req.file);
+      
       res.status(200).json({ 
         message: 'Image uploaded successfully', 
-        image: req.file.location,
-        filename: req.file.key 
+        image: imageUrl,
+        filename: filename
       });
     });
   }
 );
 
-// Health check route to verify S3 connection
+// Health check route for Cloudinary
 router.get('/health', asyncHandler(async (req, res) => {
   try {
-    await s3.headBucket({ Bucket: process.env.S3_BUCKET_NAME }).promise();
+    // Test Cloudinary connection
+    const result = await cloudinary.api.ping();
     res.json({ 
       status: 'OK', 
-      bucket: process.env.S3_BUCKET_NAME, 
-      region: process.env.AWS_REGION 
+      service: 'Cloudinary',
+      response: result
     });
   } catch (error) {
     res.status(500).json({ 
       status: 'ERROR', 
-      message: 'S3 bucket not accessible',
+      message: 'Cloudinary not accessible',
       error: error.message 
     });
   }

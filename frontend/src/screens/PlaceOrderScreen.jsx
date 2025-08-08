@@ -6,32 +6,51 @@ import CheckoutSteps from '../components/CheckoutSteps';
 import Loader from '../components/Loader';
 import Message from '../components/Message';
 import { useCreateOrderMutation } from '../slices/ordersApiSlice';
-import { CurrencyContext } from '../components/CurrencyContext'; // ✅ added
-import { clearCartItems }      from '../slices/cartSlice';
+import { CurrencyContext } from '../components/CurrencyContext';
+import { clearCartItems } from '../slices/cartSlice';
 
 const PlaceOrderScreen = () => {
   const navigate = useNavigate();
-const dispatch      = useDispatch();
+  const dispatch = useDispatch();
 
   const { currency, rates } = useContext(CurrencyContext);
   const symbols = { NGN: '₦', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+  const rate = rates[currency] || 1;
 
   // grab needed cart data
   const { cartItems, shippingAddress, paymentMethod, packagingOption } = useSelector(
     (state) => state.cart
   );
 
-  // calculate summary prices
-  const itemsPrice = cartItems
-    .reduce((sum, item) => sum + item.price * item.qty, 0)
-    .toFixed(2);
-  const shippingPrice = itemsPrice > 100 ? 0 : 10; // example rule
-  const taxPrice = (0.1 * itemsPrice).toFixed(2);
-  const totalPrice = (
-    parseFloat(itemsPrice) +
-    parseFloat(shippingPrice) +
-    parseFloat(taxPrice)
-  ).toFixed(2);
+  // calculate summary prices (matching backend logic)
+  const itemsPrice = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  
+  // Fixed $35 shipping fee
+  const SHIPPING_FLAT_USD = 35;
+  
+  // Convert $35 USD to current currency
+  let shippingPrice;
+  if (currency === 'USD') {
+    shippingPrice = SHIPPING_FLAT_USD;
+  } else {
+    // Convert USD to NGN first, then to target currency
+    const usdToNgnRate = 1 / rates['USD']; // 1 USD = how many NGN
+    const shippingInNgn = SHIPPING_FLAT_USD * usdToNgnRate; // $35 in NGN
+    shippingPrice = shippingInNgn * rate; // Convert NGN to target currency
+  }
+
+  // 5% service fee on items
+  const serviceFee = 0.05 * itemsPrice;
+  
+  // 15% tax (matching backend)
+  const taxPrice = 7.5 * itemsPrice;
+  
+  // Total price in local currency
+  const itemsPriceLocal = itemsPrice * rate;
+  const serviceFeeLocal = serviceFee * rate;
+  const taxPriceLocal = taxPrice * rate;
+  
+  const totalPrice = itemsPriceLocal + serviceFeeLocal + shippingPrice + taxPriceLocal;
 
   const [createOrder, { data: order, isLoading, error, isSuccess }] =
     useCreateOrderMutation();
@@ -52,7 +71,7 @@ const dispatch      = useDispatch();
         packagingOption,
       }).unwrap();
 
-       dispatch(clearCartItems());
+      dispatch(clearCartItems());
     } catch (err) {
       toast.error(err?.data?.message || err.error);
     }
@@ -106,12 +125,8 @@ const dispatch      = useDispatch();
                     {item.name}
                   </Link>
                   <span>
-                    {symbols[currency]}{' '}
-                    {((item.price * rates[currency]) || item.price).toFixed(2)} x {item.qty} ={' '}
-                    {symbols[currency]}{' '}
-                    {((item.price * item.qty * rates[currency]) || item.price * item.qty).toFixed(
-                      2
-                    )}
+                    {symbols[currency]} {(item.price * rate).toFixed(2)} x {item.qty} ={' '}
+                    {symbols[currency]} {(item.price * item.qty * rate).toFixed(2)}
                   </span>
                 </div>
               ))
@@ -122,29 +137,30 @@ const dispatch      = useDispatch();
         {/* Right: Costs & Place Order */}
         <div className="bg-white p-4 rounded shadow space-y-3">
           <h2 className="font-semibold text-lg">Order Summary</h2>
+          
           <div className="flex justify-between">
             <span>Items</span>
-            <span>
-              {symbols[currency]} {(itemsPrice * rates[currency] || itemsPrice).toFixed(2)}
-            </span>
+            <span>{symbols[currency]} {itemsPriceLocal.toFixed(2)}</span>
           </div>
+          
           <div className="flex justify-between">
-            <span>Shipping</span>
-            <span>
-              {symbols[currency]} {(shippingPrice * rates[currency] || shippingPrice).toFixed(2)}
-            </span>
+            <span>Service Fee (5%)</span>
+            <span>{symbols[currency]} {serviceFeeLocal.toFixed(2)}</span>
           </div>
+          
           <div className="flex justify-between">
-            <span>Tax</span>
-            <span>
-              {symbols[currency]} {(taxPrice * rates[currency] || taxPrice).toFixed(2)}
-            </span>
+            <span>Shipping ($35 USD)</span>
+            <span>{symbols[currency]} {shippingPrice.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between font-bold">
+          
+          <div className="flex justify-between">
+            <span>Tax (7.5%)</span>
+            <span>{symbols[currency]} {taxPriceLocal.toFixed(2)}</span>
+          </div>
+          
+          <div className="flex justify-between font-bold text-lg border-t pt-2">
             <span>Total</span>
-            <span>
-              {symbols[currency]} {(totalPrice * rates[currency] || totalPrice).toFixed(2)}
-            </span>
+            <span>{symbols[currency]} {totalPrice.toFixed(2)}</span>
           </div>
 
           {error && <Message variant="danger">{error?.data?.message || error.error}</Message>}

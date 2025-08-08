@@ -19,6 +19,43 @@ const OrderListScreen = () => {
   const symbols = { NGN: '₦', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
   const rate = rates[currency] || 1;
 
+  // Constants for pricing calculations (matching backend)
+  const SERVICE_FEE_PERCENT = 0.05;
+  const SHIPPING_FLAT_USD = 35;
+
+  // Function to calculate the correct total for display
+  const calculateOrderTotal = (order) => {
+    // Items price in NGN (base currency from database)
+    const itemsPrice = parseFloat(order.itemsPrice);
+    
+    // Calculate service fee (5% of items)
+    const serviceFee = itemsPrice * SERVICE_FEE_PERCENT;
+    
+    // Calculate shipping in target currency
+    let shippingPrice;
+    if (currency === 'USD') {
+      shippingPrice = SHIPPING_FLAT_USD;
+    } else {
+      // Convert $35 USD to NGN first, then to target currency
+      const usdToNgnRate = 1 / rates['USD']; // 1 USD = how many NGN
+      const shippingInNgn = SHIPPING_FLAT_USD * usdToNgnRate; // $35 in NGN
+      shippingPrice = shippingInNgn * rate; // Convert NGN to target currency
+    }
+    
+    // Tax price in NGN (from database)
+    const taxPrice = parseFloat(order.taxPrice);
+    
+    // Convert all prices to target currency
+    const itemsPriceLocal = itemsPrice * rate;
+    const serviceFeeLocal = serviceFee * rate;
+    const taxPriceLocal = taxPrice * rate;
+    
+    // Calculate total
+    const totalPrice = itemsPriceLocal + serviceFeeLocal + shippingPrice + taxPriceLocal;
+    
+    return totalPrice;
+  };
+
   // Filter orders by ID or user name
   const filtered = orders.filter((order) => {
     const term = searchTerm.toLowerCase();
@@ -70,13 +107,16 @@ const OrderListScreen = () => {
                     filtered.map((order) => {
                       const isDelivered = order.orderStatus === 'delivered';
                       const isShipped   = order.orderStatus === 'shipped';
+                      // Calculate the correct total using new pricing logic
+                      const correctTotal = calculateOrderTotal(order);
+                      
                       return (
                         <tr key={order._id} className="hover:bg-gray-50 transition-colors duration-150">
                           <td className="py-3 px-4 font-mono text-xs text-gray-700">{order._id}</td>
                           <td className="py-3 px-4">{order.user?.name || '—'}</td>
                           <td className="py-3 px-4">{order.createdAt.substring(0, 10)}</td>
                           <td className="py-3 px-4 font-semibold text-gray-900">
-                            {symbols[currency]} {(order.totalPrice * rate).toFixed(2)}
+                            {symbols[currency]} {correctTotal.toFixed(2)}
                           </td>
                           <td className="py-3 px-4 text-center">
                             {order.isPaid ? (
@@ -135,6 +175,9 @@ const OrderListScreen = () => {
               filtered.map((order) => {
                 const isDelivered = order.orderStatus === 'delivered';
                 const isShipped   = order.orderStatus === 'shipped';
+                // Calculate the correct total using new pricing logic
+                const correctTotal = calculateOrderTotal(order);
+                
                 return (
                   <div
                     key={order._id}
@@ -172,7 +215,7 @@ const OrderListScreen = () => {
                     <div className="flex justify-between mb-2">
                       <p className="text-sm text-gray-500">Total</p>
                       <p className="text-sm font-semibold text-gray-900">
-                        {symbols[currency]} {(order.totalPrice * rate).toFixed(2)}
+                        {symbols[currency]} {correctTotal.toFixed(2)}
                       </p>
                     </div>
 

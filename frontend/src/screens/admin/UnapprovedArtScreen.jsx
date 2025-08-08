@@ -298,6 +298,10 @@ const UnapprovedArtScreen = () => {
           <p>
             <strong>Weight:</strong> {selectedProduct.weight} kg
           </p>
+ <p>
+   <strong>Framed:</strong>{' '}
+   {(selectedProduct.isFramed ?? selectedProduct.framed) ? 'Yes' : 'No'}
+ </p>
           {selectedProduct.tags.length > 0 && (
             <p>
               <strong>Tags:</strong>{' '}

@@ -15,18 +15,22 @@ export function calcPrices(orderItems) {
     0
   );
 
-  // Calculate the shipping price
-  const shippingPrice = itemsPrice > 100 ? 0 : 10;
+  // Fixed shipping price of $35
+  const shippingPrice = 35;
 
-  // Calculate the tax price
-  const taxPrice = 0.15 * itemsPrice;
+  // Calculate 5% service fee on items price
+  const serviceFee = 0.5 * itemsPrice;
 
-  // Calculate the total price
-  const totalPrice = itemsPrice + shippingPrice + taxPrice;
+  // Calculate the tax price (15% on items)
+  const taxPrice = 7.5 * itemsPrice;
+
+  // Calculate the total price including service fee
+  const totalPrice = itemsPrice + serviceFee + shippingPrice + taxPrice;
 
   // return prices as strings fixed to 2 decimal places
   return {
     itemsPrice: addDecimals(itemsPrice),
+    serviceFee: addDecimals(serviceFee),
     shippingPrice: addDecimals(shippingPrice),
     taxPrice: addDecimals(taxPrice),
     totalPrice: addDecimals(totalPrice),

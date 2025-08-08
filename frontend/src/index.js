@@ -58,6 +58,9 @@ import AdminBlogScreen from './screens/admin/AdminBlogScreen'
 import ShipOrderScreen from './screens/ShipOrderscreen';
 import SellerOrdersScreen from './screens/SellerOrdersScreen';
 import AdminDisputesScreen from './screens/admin/AdminDisputesScreen';
+import DeliveryReturnsPage from './screens/DeliveryReturnsScreen';
+import GeneralTermsOfUse from './screens/GeneralTermofUse';
+import PrivacyPolicy from './screens/PrivacyPolicy';
 
 const SUPPORTED_PAYPAL = ['USD','EUR','GBP','JPY'];
 const router = createBrowserRouter(
@@ -81,6 +84,11 @@ const router = createBrowserRouter(
       <Route path="/contact" element={<ContactScreen />} />
       <Route path="/blogs" element={<BlogListScreen />} />
       <Route path="/blog/:id" element={<BlogDetailScreen />} />
+
+
+        <Route path="deliveries-returns" element={<DeliveryReturnsPage />} />
+        <Route path="privacy" element={<PrivacyPolicy />} />
+        <Route path="term-of-use" element={<GeneralTermsOfUse />} />
 
       {/* Auth routes */}
       <Route path="/login" element={<LoginScreen />} />

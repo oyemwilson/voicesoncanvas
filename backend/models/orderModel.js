@@ -64,6 +64,11 @@ const orderSchema = new Schema({
   totalPrice:       { type: Number, required: true, default: 0.0 },
   discountAmount:   { type: Number, default: 0.0 },
   couponCode:       { type: String },
+  serviceFee: {
+  type: Number,
+  required: true,
+  default: 0.00
+},
 
   isPaid:           { type: Boolean, required: true, default: false },
   paidAt:           { type: Date },

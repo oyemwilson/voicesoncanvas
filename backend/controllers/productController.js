@@ -293,6 +293,7 @@ const createProduct = asyncHandler(async (req, res) => {
     images = [],           // array of other URLs
     category,
     medium,
+    framed,
     style,
     type,
     brand = '',
@@ -325,6 +326,7 @@ const createProduct = asyncHandler(async (req, res) => {
     category,
     medium,
     style,
+    framed,
     type,
     brand,
     countInStock,
@@ -396,6 +398,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     category,
     countInStock,
     tags,
+    framed,
     specifications,
     weight,
     dimensions,

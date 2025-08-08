@@ -27,7 +27,11 @@ const ProfileScreen = () => {
 
   const { currency, rates } = useContext(CurrencyContext);
   const symbols = { NGN: '₦', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
-  const rate    = rates[currency] || 1;
+  const rate = rates[currency] || 1;
+
+  // Constants for pricing calculations (matching backend)
+  const SERVICE_FEE_PERCENT = 0.05;
+  const SHIPPING_FLAT_USD = 35;
 
   useEffect(() => {
     if (userInfo) {
@@ -49,6 +53,39 @@ const ProfileScreen = () => {
     } catch (err) {
       toast.error(err?.data?.message || err.error);
     }
+  };
+
+  // Function to calculate the correct total for display
+  const calculateOrderTotal = (order) => {
+    // Items price in NGN (base currency from database)
+    const itemsPrice = parseFloat(order.itemsPrice);
+    
+    // Calculate service fee (5% of items)
+    const serviceFee = itemsPrice * SERVICE_FEE_PERCENT;
+    
+    // Calculate shipping in target currency
+    let shippingPrice;
+    if (currency === 'USD') {
+      shippingPrice = SHIPPING_FLAT_USD;
+    } else {
+      // Convert $35 USD to NGN first, then to target currency
+      const usdToNgnRate = 1 / rates['USD']; // 1 USD = how many NGN
+      const shippingInNgn = SHIPPING_FLAT_USD * usdToNgnRate; // $35 in NGN
+      shippingPrice = shippingInNgn * rate; // Convert NGN to target currency
+    }
+    
+    // Tax price in NGN (from database)
+    const taxPrice = parseFloat(order.taxPrice);
+    
+    // Convert all prices to target currency
+    const itemsPriceLocal = itemsPrice * rate;
+    const serviceFeeLocal = serviceFee * rate;
+    const taxPriceLocal = taxPrice * rate;
+    
+    // Calculate total
+    const totalPrice = itemsPriceLocal + serviceFeeLocal + shippingPrice + taxPriceLocal;
+    
+    return totalPrice;
   };
 
   return (
@@ -149,14 +186,16 @@ const ProfileScreen = () => {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {orders.map((order) => {
-                  const convertedTotal = (order.totalPrice * rate).toFixed(2);
-                  const isDelivered    = order.orderStatus === 'delivered';
+                  // Calculate the correct total using new pricing logic
+                  const correctTotal = calculateOrderTotal(order);
+                  const isDelivered = order.orderStatus === 'delivered';
+                  
                   return (
                     <tr key={order._id} className="hover:bg-gray-50">
                       <td className="px-4 py-2 text-sm">{order._id}</td>
                       <td className="px-4 py-2 text-sm">{order.createdAt.substring(0, 10)}</td>
                       <td className="px-4 py-2 text-sm font-medium text-gray-900">
-                        {symbols[currency]} {convertedTotal}
+                        {symbols[currency]} {correctTotal.toFixed(2)}
                       </td>
                       <td className="px-4 py-2 text-sm">
                         {order.isPaid ? (

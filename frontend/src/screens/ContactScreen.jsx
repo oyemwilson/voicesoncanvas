@@ -146,7 +146,7 @@ const ContactScreen = () => {
 
           <button
             type="submit"
-            className="w-full sm:w-auto bg-black hover:bg-gray-200 text-white font-semibold px-6 py-3 rounded-lg transition-all"
+            className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 text-white font-semibold px-6 py-3 rounded-lg transition-all"
           >
             Send Message
           </button>

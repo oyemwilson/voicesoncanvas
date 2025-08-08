@@ -10,69 +10,71 @@ import { sendTemplateEmail, sendNotificationEmail } from '../utils/sendEmail.js'
 // @route   POST /api/orders
 // @access  Private
 const addOrderItems = asyncHandler(async (req, res) => {
-  const { orderItems, shippingAddress, paymentMethod, packagingOption } = req.body
+  const { orderItems, shippingAddress, paymentMethod, packagingOption } = req.body;
 
   if (!orderItems || orderItems.length === 0) {
-    res.status(400)
-    throw new Error('No order items')
+    res.status(400);
+    throw new Error('No order items');
   }
 
-  // 1️⃣ Build “trusted” order items from DB prices
+  // 1️⃣ Build "trusted" order items from DB prices
   const itemsFromDB = await Product.find({
     _id: { $in: orderItems.map(x => x._id) }
-  })
+  });
 
   const dbOrderItems = orderItems.map(item => {
-    const prod = itemsFromDB.find(p => p._id.toString() === item._id)
+    const prod = itemsFromDB.find(p => p._id.toString() === item._id);
     return {
       ...item,
-      seller: prod.user || prod.seller,     // your seller field
+      seller: prod.user || prod.seller, // your seller field
       product: item._id,
       price: prod.price,
       _id: undefined
-    }
-  })
+    };
+  });
 
-  // 2️⃣ Calculate totals
-  const { itemsPrice, taxPrice, shippingPrice, totalPrice } = calcPrices(dbOrderItems)
+  // 2️⃣ Calculate totals (now includes serviceFee)
+  const { itemsPrice, serviceFee, taxPrice, shippingPrice, totalPrice } = calcPrices(dbOrderItems);
 
   // 3️⃣ Create & save the order
   const order = new Order({
-    orderItems:     dbOrderItems,
-    user:           req.user._id,
+    orderItems: dbOrderItems,
+    user: req.user._id,
     shippingAddress,
     paymentMethod,
     itemsPrice,
+    serviceFee, // Add serviceFee to the order
     taxPrice,
     shippingPrice,
     totalPrice,
     packagingOption: packagingOption || 'Standard',
-    orderStatus:    'pending',
-    disputeStatus:  'none',
-  })
-  const createdOrder = await order.save()
+    orderStatus: 'pending',
+    disputeStatus: 'none',
+  });
+
+  const createdOrder = await order.save();
 
   // 4️⃣ Send confirmation to **buyer**
   try {
     const buyer = await User.findById(req.user._id).select('email name');
-   await sendNotificationEmail({
-     to: buyer.email,
-     type: 'paymentReminder',        // <-- new template key
-     orderData: {
-       customerName: buyer.name,
-       orderId:      createdOrder._id.toString()
-     }
-   });
-   console.log(`✅ Payment reminder sent to ${buyer.email}`);
- } catch (err) {
-   console.error('❌ Failed to send payment reminder:', err);
- }
 
+    await sendNotificationEmail({
+      to: buyer.email,
+      type: 'paymentReminder', // <-- new template key
+      orderData: {
+        customerName: buyer.name,
+        orderId: createdOrder._id.toString()
+      }
+    });
 
+    console.log(`✅ Payment reminder sent to ${buyer.email}`);
+  } catch (err) {
+    console.error('❌ Failed to send payment reminder:', err);
+  }
 
   // 6️⃣ Return the created order
-  res.status(201).json(createdOrder)
-})
+  res.status(201).json(createdOrder);
+});
 
 // @desc    Get logged in user orders
 // @route   GET /api/orders/myorders

@@ -13,7 +13,7 @@ import Message from '../components/Message';
 import Meta from '../components/Meta';
 import { addToCart } from '../slices/cartSlice';
 import Product from '../components/Product';
-import { CurrencyContext } from '../components/CurrencyContext'; // ✅ added
+import { CurrencyContext } from '../components/CurrencyContext';
 
 const ProductScreen = () => {
   const { id: productId } = useParams();
@@ -186,6 +186,40 @@ const ProductScreen = () => {
                         </div>
                       )}
 
+                      {/* Category and Type badges */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {product.category && (
+                          <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            {product.category}
+                          </span>
+                        )}
+                        {product.type && (
+                          <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            {product.type}
+                          </span>
+                        )}
+                        {product.style && (
+                          <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            {product.style}
+                          </span>
+                        )}
+                        {product.medium && (
+                          <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            {product.medium}
+                          </span>
+                        )}
+                        {product.isLimitedEdition && (
+                          <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            Limited Edition
+                          </span>
+                        )}
+                        {product.framed && (
+                          <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            Framed
+                          </span>
+                        )}
+                      </div>
+
                       {/* <div className="mb-4">
                         <Rating value={product.rating} text={`${product.numReviews} reviews`} />
                       </div> */}
@@ -218,13 +252,13 @@ const ProductScreen = () => {
                               : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {product.countInStock > 0 ? 'In Stock' : 'Out Of Stock'}
+                          {product.countInStock > 0 ? `${product.countInStock} In Stock` : 'Out Of Stock'}
                         </span>
                       </div>
                     </div>
 
                     <button
-                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      className="w-full bg-gray-900 hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                       type="button"
                       disabled={product.countInStock === 0}
                       onClick={addToCartHandler}
@@ -242,9 +276,46 @@ const ProductScreen = () => {
                 {/* Description */}
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-4">Description</h3>
-                  <p className="text-gray-700 leading-relaxed">{product.description}</p>
+                  <p className="text-gray-700 leading-relaxed mb-4">{product.description}</p>
+                  
+                  {/* Additional Details */}
+                  <div className="space-y-3 text-sm">
+                    {product.category && (
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-600">Category:</span>
+                        <span className="text-gray-800">{product.category}</span>
+                      </div>
+                    )}
+                    {product.type && (
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-600">Type:</span>
+                        <span className="text-gray-800">{product.type}</span>
+                      </div>
+                    )}
+                    {product.medium && (
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-600">Medium:</span>
+                        <span className="text-gray-800">{product.medium}</span>
+                      </div>
+                    )}
+                    {product.style && (
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-600">Style:</span>
+                        <span className="text-gray-800">{product.style}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Framed:</span>
+                      <span className="text-gray-800">{product.framed ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Limited Edition:</span>
+                      <span className="text-gray-800">{product.isLimitedEdition ? 'Yes' : 'No'}</span>
+                    </div>
+                  </div>
+
                   {product.tags?.length > 0 && (
-                    <div className="mt-4">
+                    <div className="mt-6">
                       <h4 className="font-semibold text-gray-800 mb-2">Tags</h4>
                       <div className="flex flex-wrap gap-2">
                         {product.tags.map((tag, index) => (
@@ -263,9 +334,32 @@ const ProductScreen = () => {
                 {/* Specifications */}
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-4">Product Details</h3>
+                  
+                  {/* Dimensions */}
+                  <div className="mb-6">
+                    <h4 className="font-semibold text-gray-800 mb-3">Dimensions & Weight</h4>
+                    <div className="space-y-2 text-sm">
+                      {(product.dimensionLength || product.dimensionWidth || product.dimensionHeight) && (
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">Dimensions (L×W×H):</span>
+                          <span className="text-gray-800">
+                            {product.dimensionLength || 0} × {product.dimensionWidth || 0} × {product.dimensionHeight || 0} cm
+                          </span>
+                        </div>
+                      )}
+                      {product.weight && (
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">Weight:</span>
+                          <span className="text-gray-800">{product.weight} kg</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Custom Specifications */}
                   {product.specifications?.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="font-semibold text-gray-800 mb-2">Specifications</h4>
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-800 mb-3">Specifications</h4>
                       <div className="space-y-2">
                         {product.specifications.map((spec, index) => (
                           <div key={index} className="flex justify-between text-sm">
@@ -277,33 +371,40 @@ const ProductScreen = () => {
                     </div>
                   )}
 
+                  {/* Other Details */}
                   <div className="space-y-2 text-sm">
-                    {product.dimensions && (
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-600">Dimensions:</span>
-                        <span className="text-gray-800">
-                          {product.dimensions.length} × {product.dimensions.width} × {product.dimensions.height}
-                        </span>
-                      </div>
-                    )}
-
-                    {product.weight && (
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-600">Weight:</span>
-                        <span className="text-gray-800">{product.weight} kg</span>
-                      </div>
-                    )}
-
                     {product.sku && (
                       <div className="flex justify-between">
                         <span className="font-medium text-gray-600">SKU:</span>
                         <span className="text-gray-800">{product.sku}</span>
                       </div>
                     )}
-                    {product.type && (
+                    {product.currency && (
                       <div className="flex justify-between">
-                        <span className="font-medium text-gray-600">Type:</span>
-                        <span className="text-gray-800">{product.type}</span>
+                        <span className="font-medium text-gray-600">Original Currency:</span>
+                        <span className="text-gray-800">{product.currency}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Featured:</span>
+                      <span className="text-gray-800">{product.isFeatured ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Active:</span>
+                      <span className="text-gray-800">{product.isActive ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Approved:</span>
+                      <span className={`${product.approved ? 'text-green-600' : 'text-red-600'}`}>
+                        {product.approved ? 'Yes' : 'Pending'}
+                      </span>
+                    </div>
+                    {product.createdAt && (
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-600">Listed:</span>
+                        <span className="text-gray-800">
+                          {new Date(product.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -346,7 +447,6 @@ const ProductScreen = () => {
                   >
                     {artistProducts
                       .filter((p) => p._id !== product._id)
-                      
                       .map((art) => (
                         <div key={art._id} className="flex-shrink-0 w-64">
                           <Product product={art} />

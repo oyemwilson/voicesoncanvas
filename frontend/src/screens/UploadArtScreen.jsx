@@ -28,6 +28,9 @@ const UploadArtScreen = () => {
   const [salePrice, setSalePrice] = useState('')
   const [countInStock, setCountInStock] = useState('')
 
+  // Pricing & stock – keep existing lines above
+const [isFramed, setIsFramed] = useState(''); 
+
   // Images
   const [images, setImages] = useState([])
 
@@ -268,175 +271,186 @@ const UploadArtScreen = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">Upload Your Art</h1>
-      <div onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Info */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h2 className="font-semibold mb-4">Basic Information</h2>
-          <input
-            className="w-full border p-3 rounded mb-3"
-            placeholder="Art Name *"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <textarea
-            className="w-full border p-3 rounded"
-            placeholder="Description *"
-            rows={4}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-          />
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Your Artwork</h1>
+        <p className="text-gray-600">Share your creativity with the world</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Section 1: Basic Information */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+            Basic Information
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Artwork Title *</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter artwork title"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+              <textarea
+                rows={4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Tell the story behind your artwork..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Classification */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h2 className="font-semibold mb-4">Categories & Classification</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Section 2: Classification */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+            Classification
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
-              {
-                label: 'Category *',
-                value: category,
-                onChange: (e) => setCategory(e.target.value),
-                options: [
-                  'Abstract',
-                  'Realism',
-                  'Afro-Futurism',
-                  'Contemporary',
-                  'Traditional',
-                  'Other',
-                ],
-              },
-              {
-                label: 'Medium *',
-                value: medium,
-                onChange: (e) => setMedium(e.target.value),
-                options: [
-                  'Oil Painting',
-                  'Acrylic Painting',
-                  'Watercolor',
-                  'Digital Print',
-                  'Canvas Print',
-                  'Sculpture',
-                  'Mixed Media',
-                  'Photography',
-                ],
-              },
-              {
-                label: 'Style *',
-                value: style,
-                onChange: (e) => setStyle(e.target.value),
-                options: [
-                  'Abstract',
-                  'Realism',
-                  'Impressionism',
-                  'Minimalism',
-                  'Afro-Futurism',
-                  'Pop Art',
-                  'Surrealism',
-                  'Other',
-                ],
-              },
-              {
-                label: 'Product Type *',
-                value: type,
-                onChange: (e) => setType(e.target.value),
-                options: [
-                  'Original Artwork',
-                  'Limited Edition Print',
-                  'Open Edition Print',
-                  'Digital Download',
-                  'Sculpture',
-                  'Mixed-Media',
-                ],
-              },
+              { label: 'Category *', value: category, onChange: setCategory, options: ['Abstract', 'Realism', 'Afro-Futurism', 'Contemporary', 'Traditional', 'Other'] },
+              { label: 'Medium *', value: medium, onChange: setMedium, options: ['Oil Painting', 'Acrylic Painting', 'Watercolor', 'Digital Print', 'Canvas Print', 'Sculpture', 'Mixed Media', 'Photography'] },
+              { label: 'Style *', value: style, onChange: setStyle, options: ['Abstract', 'Realism', 'Impressionism', 'Minimalism', 'Afro-Futurism', 'Pop Art', 'Surrealism', 'Other'] },
+              { label: 'Product Type *', value: type, onChange: setType, options: ['Original Artwork', 'Limited Edition Print', 'Open Edition Print', 'Digital Download', 'Sculpture', 'Mixed-Media'] },
             ].map(({ label, value, onChange, options }) => (
-              <select
-                key={label}
-                className="border p-3 rounded"
-                value={value}
-                onChange={onChange}
-                required
-              >
-                <option value="">{label}</option>
-                {options.map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-              </select>
+              <div key={label}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={value}
+                  onChange={(e) => onChange(e.target.value)}
+                  required
+                >
+                  <option value="">Select {label.split(' ')[0]}</option>
+                  {options.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Images */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h2 className="font-semibold mb-4">Images *</h2>
-          <input
-            id="imageInput"
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleImageSelect}
-            className="w-full border p-3 rounded"
-            required
-          />
-          {images.length > 0 && (
-            <ul className="mt-2 space-y-1">
-              {images.map((img, i) => (
-                <li
-                  key={i}
-                  className="flex justify-between items-center bg-white p-2 rounded border"
-                >
-                  <span>
-                    {i === 0 && (
-                      <span className="bg-blue-100 text-blue-800 px-2 rounded text-xs mr-2">
-                        MAIN
-                      </span>
-                    )}
-                    {img.name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeImage(i)}
-                    className="text-red-500"
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+        {/* Section 3: Images */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+            Images
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload Images *
+                <span className="text-xs text-gray-500 ml-1">(First image will be main display)</span>
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+                <div className="space-y-1 text-center">
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="imageInput"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none"
+                    >
+                      <span>Upload files</span>
+                      <input
+                        id="imageInput"
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="sr-only"
+                        required
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                </div>
+              </div>
+            </div>
+            
+            {images.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-700">Selected Files</h3>
+                <ul className="divide-y divide-gray-200">
+                  {images.map((img, i) => (
+                    <li key={i} className="py-3 flex justify-between items-center">
+                      <div className="flex items-center">
+                        {i === 0 && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                            Main
+                          </span>
+                        )}
+                        <span className="text-sm text-gray-600 truncate max-w-xs">{img.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Details */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h2 className="font-semibold mb-4">Product Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Price */}
+        {/* Section 4: Pricing & Details */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+            Pricing & Details
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Pricing */}
             <div>
-              <label className="block mb-1">Price (₦) *</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                className="w-full border p-2 rounded"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Price (₦) *</label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="block w-full pl-4 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="0.00"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
+            {/* Framed Option */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Framed *</label>
+              <select
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={isFramed}
+                onChange={(e) => setIsFramed(e.target.value)}
+                required
+              >
+                <option value="">Select option</option>
+                <option value="yes">Yes (Framed)</option>
+                <option value="no">No (Unframed)</option>
+              </select>
+            </div>
 
             {/* Stock */}
             <div>
-              <label className="block mb-1">Quantity *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity Available *</label>
               <input
                 type="number"
                 min="0"
-                className="w-full border p-2 rounded"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={countInStock}
                 onChange={(e) => setCountInStock(e.target.value)}
                 required
@@ -445,57 +459,73 @@ const UploadArtScreen = () => {
 
             {/* Weight */}
             <div>
-              <label className="block mb-1">Weight (kg)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
               <input
                 type="number"
                 step="0.1"
                 min="0"
-                className="w-full border p-2 rounded"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Optional"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
               />
             </div>
 
             {/* Dimensions */}
-            <div className="md:col-span-2 grid grid-cols-3 gap-2">
-              {['Length', 'Width', 'Height'].map((lab, idx) => {
-                const setters = [setLength, setWidth, setHeight]
-                const vals = [length, width, height]
-                return (
-                  <div key={lab}>
-                    <label className="block mb-1">{lab} (in)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      className="w-full border p-2 rounded"
-                      value={vals[idx]}
-                      onChange={(e) => setters[idx](e.target.value)}
-                    />
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Dimensions (inches)</label>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: 'Length', value: length, setter: setLength },
+                  { label: 'Width', value: width, setter: setWidth },
+                  { label: 'Height', value: height, setter: setHeight },
+                ].map((dim) => (
+                  <div key={dim.label}>
+                    <label className="sr-only">{dim.label}</label>
+                    <div className="flex rounded-md shadow-sm">
+                      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                        {dim.label}
+                      </span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        className="flex-1 block w-full rounded-none rounded-r-md border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="0.0"
+                        value={dim.value}
+                        onChange={(e) => dim.setter(e.target.value)}
+                      />
+                    </div>
                   </div>
-                )
-              })}
+                ))}
+              </div>
             </div>
-
-            {/* Brand */}
-
-
-
-
           </div>
         </div>
 
-        <button
-          type="submit"
-          onClick={handleSubmit}
-          disabled={creating || uploading}
-          className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {creating || uploading ? 'Uploading…' : 'Upload Artwork'}
-        </button>
-      </div>
+        {/* Submit Button */}
+        <div className="pt-4">
+          <button
+            type="submit"
+            disabled={creating || uploading}
+            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          >
+            {creating || uploading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              'Upload Artwork'
+            )}
+          </button>
+        </div>
+      </form>
     </div>
-  )
-}
+  );
+};
 
-export default UploadArtScreen
+export default UploadArtScreen;
