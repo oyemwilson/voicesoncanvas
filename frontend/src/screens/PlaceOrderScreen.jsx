@@ -17,6 +17,12 @@ const PlaceOrderScreen = () => {
   const symbols = { NGN: '₦', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
   const rate = rates[currency] || 1;
 
+  const nf = new Intl.NumberFormat(currency === 'NGN' ? 'en-NG' : 'en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+
   // grab needed cart data
   const { cartItems, shippingAddress, paymentMethod, packagingOption } = useSelector(
     (state) => state.cart
@@ -39,11 +45,12 @@ const PlaceOrderScreen = () => {
     shippingPrice = shippingInNgn * rate; // Convert NGN to target currency
   }
 
+
   // 5% service fee on items
   const serviceFee = 0.05 * itemsPrice;
   
   // 15% tax (matching backend)
-  const taxPrice = 7.5 * itemsPrice;
+  const taxPrice = 0.075 * itemsPrice;
   
   // Total price in local currency
   const itemsPriceLocal = itemsPrice * rate;
@@ -51,6 +58,12 @@ const PlaceOrderScreen = () => {
   const taxPriceLocal = taxPrice * rate;
   
   const totalPrice = itemsPriceLocal + serviceFeeLocal + shippingPrice + taxPriceLocal;
+
+  const itemsPriceLocalStr = nf.format(itemsPrice * rate);
+const serviceFeeLocalStr = nf.format(serviceFee * rate);
+const shippingPriceStr   = nf.format(shippingPrice);
+const taxPriceLocalStr   = nf.format(taxPrice * rate);
+const totalPriceStr      = nf.format(totalPrice);
 
   const [createOrder, { data: order, isLoading, error, isSuccess }] =
     useCreateOrderMutation();
@@ -125,8 +138,11 @@ const PlaceOrderScreen = () => {
                     {item.name}
                   </Link>
                   <span>
-                    {symbols[currency]} {(item.price * rate).toFixed(2)} x {item.qty} ={' '}
-                    {symbols[currency]} {(item.price * item.qty * rate).toFixed(2)}
+<span>
+  {symbols[currency]} {nf.format(Number(item.price) * rate)} x {item.qty} ={' '}
+  {symbols[currency]} {nf.format(Number(item.price) * Number(item.qty) * rate)}
+</span>
+
                   </span>
                 </div>
               ))
@@ -140,27 +156,27 @@ const PlaceOrderScreen = () => {
           
           <div className="flex justify-between">
             <span>Items</span>
-            <span>{symbols[currency]} {itemsPriceLocal.toFixed(2)}</span>
+            <span>{symbols[currency]} {itemsPriceLocalStr}</span>
           </div>
           
           <div className="flex justify-between">
             <span>Service Fee (5%)</span>
-            <span>{symbols[currency]} {serviceFeeLocal.toFixed(2)}</span>
+            <span>{symbols[currency]} {serviceFeeLocalStr}</span>
           </div>
           
           <div className="flex justify-between">
             <span>Shipping ($35 USD)</span>
-            <span>{symbols[currency]} {shippingPrice.toFixed(2)}</span>
+            <span>{symbols[currency]} {shippingPriceStr}</span>
           </div>
           
           <div className="flex justify-between">
             <span>Tax (7.5%)</span>
-            <span>{symbols[currency]} {taxPriceLocal.toFixed(2)}</span>
+            <span>{symbols[currency]} {taxPriceLocalStr}</span>
           </div>
           
           <div className="flex justify-between font-bold text-lg border-t pt-2">
             <span>Total</span>
-            <span>{symbols[currency]} {totalPrice.toFixed(2)}</span>
+            <span>{symbols[currency]} {totalPriceStr}</span>
           </div>
 
           {error && <Message variant="danger">{error?.data?.message || error.error}</Message>}
@@ -169,7 +185,7 @@ const PlaceOrderScreen = () => {
           <button
             onClick={placeOrderHandler}
             disabled={cartItems.length === 0}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded disabled:opacity-50"
+            className="w-full bg-gray-950 hover:bg-gray-600 text-white font-bold py-2 rounded disabled:opacity-50"
           >
             Place Order
           </button>

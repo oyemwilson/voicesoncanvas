@@ -29,7 +29,7 @@ const UploadArtScreen = () => {
   const [countInStock, setCountInStock] = useState('')
 
   // Pricing & stock – keep existing lines above
-const [isFramed, setIsFramed] = useState(''); 
+const [framed, setFramed] = useState('');
 
   // Images
   const [images, setImages] = useState([])
@@ -105,6 +105,10 @@ const [isFramed, setIsFramed] = useState('');
       console.error('❌ Images validation failed:', images)
       return toast.error('Please select at least one image.')
     }
+if (framed === '') {
+  console.error('❌ Framed validation failed:', framed);
+  return toast.error('Please choose if the artwork is framed.');
+}
 
     console.log('✅ All validations passed')
 
@@ -168,6 +172,8 @@ const [isFramed, setIsFramed] = useState('');
         style,
         type,
         countInStock: parseInt(countInStock, 10),
+        framed: framed === 'true',
+        
         
         // Optional fields
         ...(uploaded.length > 1 && { images: uploaded.slice(1) }),
@@ -205,6 +211,8 @@ const [isFramed, setIsFramed] = useState('');
         // Default values
         isFeaturedCollection: false,
       }
+
+
 
       // Log the payload for debugging
       console.log('📋 Final payload:', JSON.stringify(payload, null, 2))
@@ -246,6 +254,7 @@ const [isFramed, setIsFramed] = useState('');
       setWidth('')
       setHeight('')
       setImages([])
+      setFramed('')
       
       const imageInput = document.getElementById('imageInput')
       if (imageInput) {
@@ -432,16 +441,18 @@ const [isFramed, setIsFramed] = useState('');
             {/* Framed Option */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Framed *</label>
-              <select
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                value={isFramed}
-                onChange={(e) => setIsFramed(e.target.value)}
-                required
-              >
-                <option value="">Select option</option>
-                <option value="yes">Yes (Framed)</option>
-                <option value="no">No (Unframed)</option>
-              </select>
+
+<select
+ className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+  value={framed}
+  onChange={(e) => setFramed(e.target.value)}
+  required
+>
+  <option value="">Select option</option>
+  <option value="true">Yes (Framed)</option>
+  <option value="false">No (Unframed)</option>
+</select>
+
             </div>
 
             {/* Stock */}
@@ -508,7 +519,7 @@ const [isFramed, setIsFramed] = useState('');
           <button
             type="submit"
             disabled={creating || uploading}
-            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-gray-950 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
           >
             {creating || uploading ? (
               <>

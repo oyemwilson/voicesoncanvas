@@ -36,6 +36,16 @@ const Product = ({ product }) => {
 
   const wishlistOperationInProgress = addingToWishlist || removingFromWishlist;
 
+  // inside Product component (top, after symbols/rates)
+const nf = new Intl.NumberFormat(
+  currency === 'NGN' ? 'en-NG' : 'en-US',
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+);
+
+const rawConvertedPrice = Number(product.price) * (rates[currency] || 1);
+const formattedPrice = nf.format(rawConvertedPrice);
+
+
   useEffect(() => {
     if (wishlist && Array.isArray(wishlist)) {
       const found = wishlist.find((item) => item._id === product._id);
@@ -168,9 +178,9 @@ const Product = ({ product }) => {
         </p>
 
         {/* ✅ Price with selected currency */}
-        <p className="text-gray-900 font-bold text-base sm:text-lg md:text-xl">
-          {symbols[currency]} {convertedPrice}
-        </p>
+<p className="text-gray-900 font-bold text-base sm:text-lg md:text-xl">
+  {symbols[currency]} {formattedPrice}
+</p>
 
         {/* <p
           className={`text-xs font-medium ${
@@ -187,24 +197,25 @@ const Product = ({ product }) => {
         {/* Buttons */}
         <div className="mt-auto pt-2">
           <div className="flex sm:hidden gap-2 justify-between">
-            <button
-              onClick={handleAddToCart}
-              disabled={isOutOfStock}
-              className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-md border text-xs font-medium transition-all duration-200 ${
-                isOutOfStock
-                  ? 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'
-                  : 'border-black text-black hover:bg-black hover:text-white hover:shadow-md active:scale-95'
-              }`}
-            >
-              {isOutOfStock ? (
-                <span className="text-xs">Sold Out</span>
-              ) : (
-                <>
-                  <FaPlus className="w-3 h-3" />
-                  <span className="text-xs">Cart</span>
-                </>
-              )}
-            </button>
+<button
+  onClick={handleAddToCart}
+  disabled={isOutOfStock}
+  className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-md border text-xs font-medium transition-colors duration-200
+    ${isOutOfStock
+      ? 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'
+      : 'bg-white border-black text-black md:hover:bg-black md:hover:text-white active:bg-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20'
+    }`}
+>
+  {isOutOfStock ? (
+    <span className="text-xs">Sold Out</span>
+  ) : (
+    <>
+      <FaPlus className="w-3 h-3" />
+      <span className="text-xs">Cart</span>
+    </>
+  )}
+</button>
+
 
             <Link
               to={`/product/${product._id}`}

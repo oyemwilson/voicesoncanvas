@@ -43,6 +43,12 @@ const OrderScreen = () => {
   const symbolMap = { NGN:'₦', USD:'$', EUR:'€', GBP:'£', JPY:'¥' };
   const symbol = symbolMap[currency] || currency;
 
+  const nf = new Intl.NumberFormat(currency === 'NGN' ? 'en-NG' : 'en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+
   const {
     data: order,
     refetch,
@@ -71,6 +77,8 @@ const OrderScreen = () => {
   // Fixed currency calculations
   const itemsTotalLocal = order.itemsPrice * rate;
   const serviceFeeLocal = itemsTotalLocal * SERVICE_FEE_PERCENT;
+
+  
   // Convert $35 USD to current currency
   let shippingLocal;
   if (currency === 'USD') {
@@ -83,6 +91,13 @@ const OrderScreen = () => {
   }
   const taxLocal = order.taxPrice * rate;
   const grandTotalLocal = itemsTotalLocal + serviceFeeLocal + shippingLocal + taxLocal;
+
+  const itemsTotalLocalStr = nf.format(itemsTotalLocal);
+const serviceFeeLocalStr = nf.format(serviceFeeLocal);
+const shippingLocalStr   = nf.format(shippingLocal);
+const taxLocalStr        = nf.format(taxLocal);
+const grandTotalLocalStr = nf.format(grandTotalLocal);
+
 
   // USD totals for PayPal - convert from NGN to USD
   const usdRate = rates['USD']; // 0.00066 (1 NGN = 0.00066 USD)
@@ -217,9 +232,10 @@ const OrderScreen = () => {
                   </Link>
                   <p className="text-sm text-gray-600">Packaging: {order.packagingOption}</p>
                 </div>
-                <div className="text-gray-700">
-                  {item.qty} x {symbol}{(item.price * rate).toFixed(2)} = {symbol}{(item.qty * item.price * rate).toFixed(2)}
-                </div>
+<div className="text-gray-700">
+  {item.qty} x {symbol} {nf.format(Number(item.price) * rate)} = {symbol} {nf.format(Number(item.qty) * Number(item.price) * rate)}
+</div>
+
               </div>
             ))}
           </div>
@@ -237,27 +253,27 @@ const OrderScreen = () => {
 
               <div className="flex justify-between">
                 <span>Items</span>
-                <span>{symbol}{itemsTotalLocal.toFixed(2)}</span>
+                <span>{symbol}{itemsTotalLocalStr}</span>
               </div>
 
               <div className="flex justify-between">
                 <span>Service Fee (5%)</span>
-                <span>{symbol}{serviceFeeLocal.toFixed(2)}</span>
+                <span>{serviceFeeLocalStr}</span>
               </div>
 
               <div className="flex justify-between">
                 <span>Shipping ($35 USD)</span>
-                <span>{symbol}{shippingLocal.toFixed(2)}</span>
+                <span>{symbol}{shippingLocalStr}</span>
               </div>
 
               <div className="flex justify-between">
-                <span>Tax</span>
-                <span>{symbol}{taxLocal.toFixed(2)}</span>
+                <span>Tax (7.5%)</span>
+                <span>{symbol}{taxLocalStr}</span>
               </div>
 
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>{symbol}{grandTotalLocal.toFixed(2)}</span>
+                <span>{symbol}{grandTotalLocalStr}</span>
               </div>
             </div>
 

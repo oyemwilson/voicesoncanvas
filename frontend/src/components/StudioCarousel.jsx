@@ -2,6 +2,7 @@
 import React from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+import { Link } from 'react-router-dom';
 
 import 'swiper/css';
 import 'swiper/css/navigation';
@@ -16,7 +17,7 @@ const slides = [
     description:
       'Join our vibrant community of creators—showcase your work, build your audience, and sell directly to art enthusiasts around the world.',
     buttonText: 'Sign Up to Sell',
-    buttonLink: '/signup',
+    buttonLink: '/register',
   },
   {
     id: 2,
@@ -25,7 +26,7 @@ const slides = [
     description:
       'Browse curated collections of original artworks and limited editions—sign up now to start buying one-of-a-kind treasures.',
     buttonText: 'Sign Up to Buy',
-    buttonLink: '/signup',
+    buttonLink: '/register',
   },
   {
     id: 3,
@@ -34,7 +35,7 @@ const slides = [
     description:
       'Upload your portfolio, tell your story, and connect with galleries and buyers—create your free artist profile today.',
     buttonText: 'Join as Artist',
-    buttonLink: '/signup',
+    buttonLink: '/register',
   },
   {
     id: 4,
@@ -43,7 +44,7 @@ const slides = [
     description:
       'Stay ahead of the curve—sign up for access to pre-release exhibitions, limited-edition launches, and special offers.',
     buttonText: 'Join to Explore',
-    buttonLink: '/signup',
+    buttonLink: '/register',
   },
 ];
 
@@ -72,12 +73,12 @@ export default function StudioCarousel() {
 <div className="absolute inset-0 flex flex-col justify-center items-center md:items-start p-6 text-white  md:text-left md:ml-16">
   <h2 className="text-5xl sm:text-3xl md:text-5xl font-bold">{slide.title}</h2>
   <p className="mt-2 text-lg sm:text-xl">{slide.description}</p>
-  <a 
-    href={slide.buttonLink} 
-    className="mt-4 bg-yellow-500 hover:bg-yellow-600 px-6 py-2  rounded text-lg transition-colors duration-200"
+  <Link
+    to={slide.buttonLink}
+    className="mt-4 bg-yellow-500 hover:bg-yellow-600 px-6 py-2 rounded text-lg transition-colors duration-200"
   >
     {slide.buttonText}
-  </a>
+  </Link>
 </div>
             </div>
           </SwiperSlide>

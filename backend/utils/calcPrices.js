@@ -22,7 +22,7 @@ export function calcPrices(orderItems) {
   const serviceFee = 0.5 * itemsPrice;
 
   // Calculate the tax price (15% on items)
-  const taxPrice = 7.5 * itemsPrice;
+  const taxPrice = 0.075 * itemsPrice;
 
   // Calculate the total price including service fee
   const totalPrice = itemsPrice + serviceFee + shippingPrice + taxPrice;

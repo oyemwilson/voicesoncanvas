@@ -374,7 +374,7 @@ const ProductEditScreen = () => {
 
             <button
               type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              className="bg-gray-950 text-white px-4 py-2 rounded hover:bg-blue-700"
             >
               Update Product
             </button>

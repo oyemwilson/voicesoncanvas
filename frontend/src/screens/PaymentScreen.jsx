@@ -43,7 +43,7 @@ const PaymentScreen = () => {
           <legend className="block text-gray-700 text-sm font-bold mb-2">
             Payment Method
           </legend>
-          {['PayPal', 'Flutterwave', 'CreditCard'].map((method) => (
+          {['PayPal', 'PayStack', 'Card'].map((method) => (
             <label key={method} className="block mb-2">
               <input
                 type="radio"
@@ -80,7 +80,7 @@ const PaymentScreen = () => {
 
         <button
           type="submit"
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          className="bg-gray-950 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
         >
           Continue
         </button>

@@ -107,7 +107,7 @@ const RequestSellerScreen = () => {
                   setTermsAccepted(true);
                   setShowTermsModal(false);
                 }}
-                className="bg-gray-950 hover:bg-gray-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                className="bg-gray-950 hover:bg-gray-600 text-white px-4 py-2 rounded "
               >
                 I Understand
               </button>
@@ -124,7 +124,7 @@ const RequestSellerScreen = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Bio *</label>
             <textarea
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg "
               rows={4}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
@@ -136,7 +136,7 @@ const RequestSellerScreen = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Profile Photo *</label>
             <div className="mt-1 flex items-center">
-              <label className="cursor-pointer bg-white rounded-md font-medium text-yellow-600 hover:text-yellow-500 border border-gray-300 px-4 py-2">
+              <label className="cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 border border-gray-300 px-4 py-2">
                 <span>{photo ? photo.name : 'Select Photo'}</span>
                 <input
                   type="file"
@@ -157,7 +157,7 @@ const RequestSellerScreen = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Artist Statement *</label>
             <textarea
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg "
               rows={4}
               value={artistStatement}
               onChange={(e) => setArtistStatement(e.target.value)}
@@ -172,7 +172,7 @@ const RequestSellerScreen = () => {
               <select
                 value={selectedCountry}
                 onChange={(e) => setSelectedCountry(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg "
                 required
               >
                 <option value="">Select country</option>
@@ -190,7 +190,7 @@ const RequestSellerScreen = () => {
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
                 disabled={!cities.length}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:opacity-50"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg  disabled:opacity-50"
                 required
               >
                 <option value="">Select city</option>
@@ -225,7 +225,7 @@ const RequestSellerScreen = () => {
                 <button
                   type="button"
                   onClick={() => setShowTermsModal(true)}
-                  className="text-yellow-600 hover:text-yellow-500 hover:underline"
+                  className="text-blue-600  hover:underline"
                 >
                   Seller Terms & Conditions
                 </button>

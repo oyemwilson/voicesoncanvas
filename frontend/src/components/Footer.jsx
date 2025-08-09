@@ -28,7 +28,14 @@ const Footer = () => {
                 Resources
               </h2>
               <ul className="text-gray-500 font-medium">
-                <li className="mb-2">
+                {/* <Link to="/" className="block hover:text-black" >Home</Link>
+                <Link to="/shop" className="block hover:text-black" >Shop</Link> */}
+                <Link to="/artists" className="block hover:text-black mb-2" >Artist Profiles</Link>
+                <Link to="/impact" className="block hover:text-black mb-2" >Impact</Link>
+                <Link to="/about" className="block hover:text-black mb-2" >About Us</Link>
+                <Link to="/blogs" className="block hover:text-black mb-2" >Blog</Link>
+                <Link to="/contact" className="block hover:text-black mb-2" >Contact</Link>
+                {/* <li className="mb-2">
                   <Link to="/flowbite" className="hover:underline">
                     Flowbite
                   </Link>
@@ -37,7 +44,7 @@ const Footer = () => {
                   <Link to="/tailwind" className="hover:underline">
                     Tailwind CSS
                   </Link>
-                </li>
+                </li> */}
               </ul>
             </div>
 
@@ -48,12 +55,12 @@ const Footer = () => {
               <ul className="text-gray-500 font-medium">
                 <li className="mb-2">
                   <Link to="/github" className="hover:underline">
-                    Github
+                    Twitter
                   </Link>
                 </li>
                 <li>
                   <Link to="/discord" className="hover:underline">
-                    Discord
+                    Instagram
                   </Link>
                 </li>
               </ul>

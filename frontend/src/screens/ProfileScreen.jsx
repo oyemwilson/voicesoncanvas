@@ -154,7 +154,7 @@ const ProfileScreen = () => {
 
           <button
             type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition-colors w-full"
+            className="bg-gray-950 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition-colors w-full"
           >
             {loadingUpdateProfile ? 'Updating...' : 'Update Profile'}
           </button>

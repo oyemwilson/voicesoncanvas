@@ -49,7 +49,7 @@ const orderSchema = new Schema({
     phone:         { type: String }
   },
 
-  paymentMethod:    { type: String, required: true, enum: ['PayPal','Stripe','Cash','Bank Transfer','Card'] },
+  paymentMethod:    { type: String, required: true, enum: ['PayPal','PayStack','Stripe','Cash','Bank Transfer','Card'] },
   paymentResult:    {
     id:            { type: String },
     status:        { type: String },
@@ -60,7 +60,7 @@ const orderSchema = new Schema({
   itemsPrice:       { type: Number, required: true, default: 0.0 },
   taxPrice:         { type: Number, required: true, default: 0.0 },
   shippingPrice:    { type: Number, required: true, default: 0.0 },
-  packagingOption:  { type: String, enum: ['Standard','ArtSafe'], default: 'Standard' },
+  packagingOption:  { type: String, enum: ['Standard', 'Standard', 'Giftwrap', 'Express', 'Eco', 'Deluxe'], default: 'Standard' },
   totalPrice:       { type: Number, required: true, default: 0.0 },
   discountAmount:   { type: Number, default: 0.0 },
   couponCode:       { type: String },

@@ -76,6 +76,22 @@ const ProductScreen = () => {
     GBP: '£',
     JPY: '¥',
   };
+  // formatter for thousands + 2dp
+const nf = new Intl.NumberFormat(
+  currency === 'NGN' ? 'en-NG' : 'en-US',
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+);
+
+// numeric prices
+const priceNum = product ? product.price * (rates[currency] || 1) : 0;
+const salePriceNum = product?.salePrice
+  ? product.salePrice * (rates[currency] || 1)
+  : null;
+
+// formatted strings
+const formattedPrice = nf.format(priceNum);
+const formattedSalePrice = salePriceNum != null ? nf.format(salePriceNum) : null;
+
   const convertedPrice = product ? (product.price * (rates[currency] || 1)).toFixed(2) : 0;
   const convertedSalePrice = product?.salePrice
     ? (product.salePrice * (rates[currency] || 1)).toFixed(2)
@@ -229,9 +245,9 @@ const ProductScreen = () => {
                     <div className="border-t border-gray-200 pt-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-lg font-medium text-gray-700">Price</span>
-                        <span className="text-2xl sm:text-3xl font-bold text-gray-900">
-                          {symbols[currency]} {convertedPrice}
-                        </span>
+<span className="text-2xl sm:text-3xl font-bold text-gray-900">
+  {symbols[currency]} {formattedPrice}
+</span>
                       </div>
                       
                       {product.isOnSale && convertedSalePrice && (
@@ -308,10 +324,10 @@ const ProductScreen = () => {
                       <span className="font-medium text-gray-600">Framed:</span>
                       <span className="text-gray-800">{product.framed ? 'Yes' : 'No'}</span>
                     </div>
-                    <div className="flex justify-between">
+                    {/* <div className="flex justify-between">
                       <span className="font-medium text-gray-600">Limited Edition:</span>
                       <span className="text-gray-800">{product.isLimitedEdition ? 'Yes' : 'No'}</span>
-                    </div>
+                    </div> */}
                   </div>
 
                   {product.tags?.length > 0 && (
@@ -379,7 +395,7 @@ const ProductScreen = () => {
                         <span className="text-gray-800">{product.sku}</span>
                       </div>
                     )}
-                    {product.currency && (
+                    {/* {product.currency && (
                       <div className="flex justify-between">
                         <span className="font-medium text-gray-600">Original Currency:</span>
                         <span className="text-gray-800">{product.currency}</span>
@@ -398,7 +414,7 @@ const ProductScreen = () => {
                       <span className={`${product.approved ? 'text-green-600' : 'text-red-600'}`}>
                         {product.approved ? 'Yes' : 'Pending'}
                       </span>
-                    </div>
+                    </div> */}
                     {product.createdAt && (
                       <div className="flex justify-between">
                         <span className="font-medium text-gray-600">Listed:</span>
@@ -419,7 +435,7 @@ const ProductScreen = () => {
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-0">
                     More works from {product.user.name}
                   </h2>
-                  <div className="flex space-x-2">
+                  <div className="hidden md:block flex space-x-2">
                     <button
                       onClick={() => scroll('left')}
                       className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors duration-200 font-medium"

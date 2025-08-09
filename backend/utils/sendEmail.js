@@ -472,6 +472,41 @@ export const sendEmail = async ({ to, subject, text, html }) => {
   }
 };
 
+export const emailAllAdmins = async ({
+  adminEmails = [],   // optional extra admins from DB
+  subject,
+  text,
+  html,
+  replyTo,            // lets admins reply straight to the sender
+}) => {
+  if (!subject) throw new Error('No subject provided');
+  if (!text && !html) throw new Error('No email content provided');
+
+  const transporter = createTransporter();
+  const from = process.env.EMAIL_FROM || process.env.EMAIL_USERNAME;
+  if (!from) throw new Error('No sender email configured');
+
+  const support = process.env.SUPPORT_EMAIL || from;
+  const envAdmins = (process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const bcc = [...new Set([...envAdmins, ...adminEmails])]; // dedupe
+
+  // Send to support, BCC all admins
+  const info = await transporter.sendMail({
+    from,
+    to: support,
+    bcc: bcc.length ? bcc : undefined,
+    subject,
+    text,
+    html,
+    replyTo, // so admin “Reply” goes to the user who filled the form
+  });
+
+  return info;
+};
 
 
 

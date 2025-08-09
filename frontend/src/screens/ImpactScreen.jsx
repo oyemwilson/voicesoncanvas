@@ -41,7 +41,7 @@ const ImpactScreen = () => {
         </div>
         <div>
           <img
-            src="/images/impact-artists.jpg"
+            src="/images/impact.webp"
             alt="Artists collaborating"
             className="rounded-xl shadow-md object-cover w-full h-72 sm:h-80 md:h-96"
             loading="lazy"
