@@ -64,6 +64,30 @@ app.use((req, res, next) => {
   next();
 });
 
+// PING ENDPOINT - Add this before other routes
+app.get('/api/ping', (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`Ping received at ${timestamp}`);
+  res.status(200).json({ 
+    success: true, 
+    message: 'Server is awake', 
+    timestamp,
+    uptime: process.uptime()
+  });
+});
+
+// Health check endpoint (alternative)
+app.get('/api/health', (req, res) => {
+  const timestamp = new Date().toISOString();
+  res.status(200).json({
+    status: 'healthy',
+    timestamp,
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    env: process.env.NODE_ENV
+  });
+});
+
 // 2) API routes
 app.use('/api/products', productRoutes);
 app.use('/api/users',    userRoutes);
@@ -113,3 +137,19 @@ const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
+
+if (process.env.NODE_ENV === 'production' && process.env.ENABLE_SELF_PING === 'true') {
+  const PING_INTERVAL = 14 * 60 * 1000; // 14 minutes
+  const SERVER_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+  
+  setInterval(async () => {
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch(`${SERVER_URL}/api/ping`);
+      const data = await response.json();
+      console.log('Self-ping successful:', data.timestamp);
+    } catch (error) {
+      console.error('Self-ping failed:', error.message);
+    }
+  }, PING_INTERVAL);
+}
