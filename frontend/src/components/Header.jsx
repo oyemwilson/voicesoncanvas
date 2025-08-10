@@ -121,7 +121,7 @@ const newSalesCount       = newSales.length;
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       {/* TOP PROMO */}
-<div className="bg-[#ffefc0] text-yellow-900 text-sm py-0 px-4 flex justify-end items-center">
+<div className="bg-[#fffbe6] text-yellow-900 text-sm py-0 px-4 flex justify-end items-center">
   {/* Left Aligned Content */}
   {/* <div className="text-center tracking-wide">
     🌟 FREE SHIPPING ON ALL ORDERS ABOVE ₦50 · SHOP WITH CONFIDENCE
@@ -158,7 +158,7 @@ const newSalesCount       = newSales.length;
       </div>
 
       {/* TOP BAR */}
-      <div className="bg-[#faf2e7]">
+      <div className="bg-[#fffbe6]">
         <div className="mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between relative">
           {/* MOBILE LEFT */}
           <div className="flex items-center space-x-3 md:hidden">
@@ -339,7 +339,7 @@ const newSalesCount       = newSales.length;
       </div>
 
       {/* NAV LINKS */}
-      <div className="hidden md:flex justify-center border-t border-gray-100 bg-[#faf2e7] ">
+      <div className="hidden md:flex justify-center border-t border-gray-100 bg-[#fffbe6] ">
         <nav className="flex items-center space-x-8 py-3 text-sm font-medium text-gray-700">
           <Link to="/" className="hover:text-black" onClick={closeAllMenus}>Home</Link>
           <Link to="/shop" className="hover:text-black" onClick={closeAllMenus}>Shop</Link>
@@ -356,7 +356,7 @@ const newSalesCount       = newSales.length;
 
       {/* MOBILE MENU */}
       {mobileMenuOpen && (
-        <nav className="md:hidden bg-[#faf2e7] border-t border-gray-200 px-4 py-3 space-y-2">
+        <nav className="md:hidden bg-[#fffbe6] border-t border-gray-200 px-4 py-3 space-y-2">
           <Link to="/" className="block hover:text-black" onClick={closeAllMenus}>Home</Link>
           <Link to="/shop" className="block hover:text-black" onClick={closeAllMenus}>Shop</Link>
           <Link to="/artists" className="block hover:text-black" onClick={closeAllMenus}>Artist Profiles</Link>

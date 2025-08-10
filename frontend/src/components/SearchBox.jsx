@@ -85,7 +85,7 @@ const SearchBox = () => {
     <div ref={containerRef} className="relative max-w-md mx-auto">
       <form
         onSubmit={submitHandler}
-        className="flex items-center bg-[#faf2e7] border-b border-gray-400"
+        className="flex items-center bg-[#fffbe6] border-b border-gray-400"
       >
         {/* Search Icon */}
         <button type="submit" className="p-2 hover:text-blue-600 transition">
