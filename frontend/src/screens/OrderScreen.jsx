@@ -112,7 +112,9 @@ const grandTotalLocalStr = nf.format(grandTotalLocal);
   const isShipped   = order.isShipped;
   const isDelivered = order.orderStatus === 'delivered';
   const isBuyer     = order.user._id === userInfo._id;
-  const isSeller    = order.orderItems.some((i) => i.seller === userInfo._id);
+const getId = (v) => (v && typeof v === 'object' ? v._id : v);
+const isSeller = order.orderItems.some((i) => String(getId(i.seller)) === String(userInfo?._id));
+
   const isAdmin     = userInfo?.isAdmin;
   const hasOpenDispute    = order.disputeStatus === 'open';
   const isDisputeResolved = order.disputeStatus === 'resolved';

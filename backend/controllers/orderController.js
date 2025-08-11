@@ -201,66 +201,79 @@ const updateOrderToPaid = asyncHandler(async (req, res) => {
 
 // @desc    Update order with shipping details
 // @route   PUT /api/orders/:id/ship
-// @access  Private (Seller only)
+// @access  Private (Seller on the order or Admin)
 const updateOrderToShipped = asyncHandler(async (req, res) => {
   const { trackingNumber, carrier, shippingDate } = req.body;
 
-  // 1️⃣ Load order + buyer email
   const order = await Order.findById(req.params.id)
-    .populate('user', 'name email');
+    .populate('user', 'name email'); // buyer (for email notice)
+
   if (!order) {
     res.status(404);
     throw new Error('Order not found');
   }
 
-  // 2️⃣ Authorization check
-  if (order.user._id.toString() !== req.user._id.toString() && !req.user.isAdmin) {
-    res.status(401);
-    throw new Error('Not authorized to update this order');
+  // ✅ Authorization: admin OR a seller that appears on this order
+  const isSellerOnThisOrder = (order.orderItems || []).some(
+    (i) => String(i.seller) === String(req.user._id)
+  );
+  if (!(req.user.isAdmin || isSellerOnThisOrder)) {
+    // Use 403 so frontend doesn't treat it like an auth failure
+    res.status(403);
+    throw new Error('Not permitted to ship this order');
   }
 
-  // 3️⃣ Ensure paid
+  // Must be paid, not already shipped
   if (!order.isPaid) {
     res.status(400);
     throw new Error('Order must be paid before shipping');
   }
+  if (order.isShipped) {
+    res.status(400);
+    throw new Error('Order already shipped');
+  }
 
-  // 4️⃣ Update shipping fields
-  order.isShipped       = true;
-  order.shippedAt       = shippingDate || Date.now();
-  order.orderStatus     = 'shipped';
+  // Basic validation
+  if (!trackingNumber || !carrier) {
+    res.status(400);
+    throw new Error('trackingNumber and carrier are required');
+  }
+
+  const shippedAt = shippingDate ? new Date(shippingDate) : new Date();
+
+  // Update shipping fields
+  order.isShipped = true;
+  order.shippedAt = shippedAt;
+  order.orderStatus = 'shipped';
   order.shippingDetails = {
     trackingNumber,
-    carrier:   carrier || 'Standard Shipping',
-    shippedAt: shippingDate || Date.now(),
+    carrier,
+    shippedAt,
   };
 
   const updatedOrder = await order.save();
 
-  // 5️⃣ Notify the buyer
-  const buyerEmail = order.user.email;
+  // Notify buyer (best-effort)
+  const buyerEmail = order.user?.email;
   if (buyerEmail) {
     try {
       await sendNotificationEmail({
         to: buyerEmail,
-        type: 'order_shipped',  
+        type: 'order_shipped',
         orderData: {
-          orderNumber:    order._id.toString().slice(-8),
+          orderNumber: order._id.toString().slice(-8),
           trackingNumber,
           carrier,
-        }
+        },
       });
-      console.log(`✅ Shipping notification sent to buyer ${buyerEmail}`);
     } catch (err) {
-      console.error(`❌ Failed to send shipping email to buyer ${buyerEmail}:`, err);
+      console.error(`Email send failed for ${buyerEmail}:`, err);
     }
-  } else {
-    console.warn('⚠️  No buyer email found—skipping shipping notification');
   }
 
-  // 6️⃣ Return updated order
   res.json(updatedOrder);
 });
+
 
 // @desc    Confirm order received by buyer
 // @route   PUT /api/orders/:id/received
