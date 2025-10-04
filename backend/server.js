@@ -143,20 +143,31 @@ app.listen(PORT, () => {
 // ---- Self-ping: run ALWAYS ----
 const PING_INTERVAL = Number(process.env.PING_INTERVAL_MS) || 10 * 60 * 1000;
 
-// Prefer a public URL if you set one, else fall back to localhost
-const SERVER_URL =
+const baseUrl =
   process.env.BACKEND_URL ||
-  process.env.RENDER_EXTERNAL_URL ||      // Render sometimes provides this
+  process.env.RENDER_EXTERNAL_URL ||
   `http://localhost:${PORT}`;
 
 setInterval(async () => {
   try {
-    // Node 18+ has global fetch
-    const res = await fetch(`${SERVER_URL}/api/ping`);
-    if (!res.ok) throw new Error(String(res.status));
+    // Safely build the URL (handles trailing paths)
+    const pingUrl = new URL('/api/ping', baseUrl).toString();
+    const res = await fetch(pingUrl, { redirect: 'follow' });
+
+    // Bail early on bad status
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText} at ${res.url}`);
+
+    // Ensure we actually got JSON (not SPA HTML)
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      const sample = (await res.text()).slice(0, 120);
+      throw new Error(`Expected JSON, got ${ct}. url=${res.url}. body=${sample}`);
+    }
+
     const data = await res.json();
     console.log('Self-ping OK:', data.timestamp);
   } catch (err) {
     console.error('Self-ping failed:', err.message);
   }
 }, PING_INTERVAL);
+
