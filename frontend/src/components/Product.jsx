@@ -1,6 +1,10 @@
-import { useAddToWishlistMutation, useRemoveFromWishlistMutation, useGetWishlistQuery } from '../slices/wishListApiSlice';
+import {
+  useAddToWishlistMutation,
+  useRemoveFromWishlistMutation,
+  useGetWishlistQuery,
+} from '../slices/wishListApiSlice';
 import { useDispatch, useSelector } from 'react-redux';
-import { FaHeart, FaRegHeart, FaShoppingCart, FaEye, FaPlus } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaEye, FaPlus } from 'react-icons/fa';
 import { useEffect, useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { addToCart } from '../slices/cartSlice';
@@ -14,15 +18,7 @@ const Product = ({ product }) => {
   // ✅ currency context
   const { currency, rates } = useContext(CurrencyContext);
 
-  const symbols = {
-    NGN: '₦',
-    USD: '$',
-    EUR: '€',
-    GBP: '£',
-    JPY: '¥',
-  };
-
-  const convertedPrice = (product.price * (rates[currency] || 1)).toFixed(2);
+  const symbols = { NGN: '₦', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
 
   const { data: wishlist } = useGetWishlistQuery(undefined, {
     skip: !userInfo,
@@ -36,16 +32,38 @@ const Product = ({ product }) => {
 
   const wishlistOperationInProgress = addingToWishlist || removingFromWishlist;
 
-  // inside Product component (top, after symbols/rates)
-const nf = new Intl.NumberFormat(
-  currency === 'NGN' ? 'en-NG' : 'en-US',
-  { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-);
+  // Number formatter for selected currency
+  const nf = new Intl.NumberFormat(
+    currency === 'NGN' ? 'en-NG' : 'en-US',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+  );
 
-const rawConvertedPrice = Number(product.price) * (rates[currency] || 1);
-const formattedPrice = nf.format(rawConvertedPrice);
+  const rate = rates[currency] || 1;
 
+  // ---------- Price helpers ----------
+  const currentPrice = Number(product.price) || 0;
 
+  // Prefer server-provided originalPrice; if missing, derive from discountPercent
+  const hasServerOriginal = product?.originalPrice != null && Number(product.originalPrice) > 0;
+  const derivedBaseFromPercent =
+    typeof product?.discountPercent === 'number' && product.discountPercent > 0
+      ? Math.round(currentPrice / (1 - product.discountPercent / 100))
+      : null;
+
+  const basePrice = hasServerOriginal
+    ? Number(product.originalPrice)
+    : (derivedBaseFromPercent ?? currentPrice);
+
+  const hasDiscount = basePrice > currentPrice;
+
+  // Converted/formatted
+  const rawConvertedPrice = currentPrice * rate;
+  const formattedPrice = nf.format(rawConvertedPrice);
+
+  const rawConvertedOriginalPrice = basePrice * rate;
+  const formattedOriginalPrice = nf.format(rawConvertedOriginalPrice);
+
+  // ---------- Wishlist sync ----------
   useEffect(() => {
     if (wishlist && Array.isArray(wishlist)) {
       const found = wishlist.find((item) => item._id === product._id);
@@ -61,7 +79,6 @@ const formattedPrice = nf.format(rawConvertedPrice);
       toast.error('Please login to manage your wishlist.');
       return;
     }
-
     if (wishlistOperationInProgress) return;
 
     const previousState = isWished;
@@ -85,9 +102,7 @@ const formattedPrice = nf.format(rawConvertedPrice);
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-
     if (product.countInStock === 0) return;
-
     dispatch(addToCart({ ...product, qty: 1 }));
     toast.success(`${product.name} added to cart!`);
   };
@@ -95,11 +110,6 @@ const formattedPrice = nf.format(rawConvertedPrice);
   const handleImageError = () => setImageError(true);
 
   const isOutOfStock = product.countInStock === 0;
-  const stockDisplay = isOutOfStock
-    ? 'Sold out'
-    : product.countInStock <= 5
-    ? `Only ${product.countInStock} left`
-    : `${product.countInStock} available`;
 
   return (
     <div className="group relative bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden h-full flex flex-col">
@@ -177,45 +187,39 @@ const formattedPrice = nf.format(rawConvertedPrice);
           {product.medium} • {product.type}
         </p>
 
-        {/* ✅ Price with selected currency */}
-<p className="text-gray-900 font-bold text-base sm:text-lg md:text-xl">
-  {symbols[currency]} {formattedPrice}
-</p>
-
-        {/* <p
-          className={`text-xs font-medium ${
-            isOutOfStock
-              ? 'text-red-500'
-              : product.countInStock <= 5
-              ? 'text-orange-500'
-              : 'text-green-600'
-          }`}
-        >
-          {stockDisplay}
-        </p> */}
+        {/* ✅ Price block: old price (struck-through) + new price */}
+        <div className="flex items-baseline gap-2">
+          {hasDiscount && (
+            <span className="text-gray-500 line-through text-sm sm:text-base">
+              {symbols[currency]} {formattedOriginalPrice}
+            </span>
+          )}
+          <span className="text-gray-900 font-bold text-base sm:text-lg md:text-xl">
+            {symbols[currency]} {formattedPrice}
+          </span>
+        </div>
 
         {/* Buttons */}
         <div className="mt-auto pt-2">
           <div className="flex sm:hidden gap-2 justify-between">
-<button
-  onClick={handleAddToCart}
-  disabled={isOutOfStock}
-  className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-md border text-xs font-medium transition-colors duration-200
-    ${isOutOfStock
-      ? 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'
-      : 'bg-white border-black text-black md:hover:bg-black md:hover:text-white active:bg-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20'
-    }`}
->
-  {isOutOfStock ? (
-    <span className="text-xs">Sold Out</span>
-  ) : (
-    <>
-      <FaPlus className="w-3 h-3" />
-      <span className="text-xs">Cart</span>
-    </>
-  )}
-</button>
-
+            <button
+              onClick={handleAddToCart}
+              disabled={isOutOfStock}
+              className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-md border text-xs font-medium transition-colors duration-200
+                ${isOutOfStock
+                  ? 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'
+                  : 'bg-white border-black text-black md:hover:bg-black md:hover:text-white active:bg-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20'
+                }`}
+            >
+              {isOutOfStock ? (
+                <span className="text-xs">Sold Out</span>
+              ) : (
+                <>
+                  <FaPlus className="w-3 h-3" />
+                  <span className="text-xs">Cart</span>
+                </>
+              )}
+            </button>
 
             <Link
               to={`/product/${product._id}`}
@@ -233,7 +237,7 @@ const formattedPrice = nf.format(rawConvertedPrice);
               className={`flex-1 px-3 md:px-4 py-2 rounded-md border text-xs sm:text-sm font-medium transition-all duration-200 ${
                 isOutOfStock
                   ? 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'
-                  : 'border-black text-black hover:bg-gray-100 hover:text-white hover:shadow-md active:scale-95'
+                  : 'border-black text-black hover:bg-gray-100 hover:shadow-md active:scale-95'
               }`}
             >
               {isOutOfStock ? 'Sold Out' : 'Add To Cart'}

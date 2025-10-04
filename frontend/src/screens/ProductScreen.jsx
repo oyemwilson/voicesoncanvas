@@ -7,7 +7,6 @@ import {
   useCreateReviewMutation,
   useGetProductsByArtistQuery,
 } from '../slices/productsApiSlice';
-import Rating from '../components/Rating';
 import Loader from '../components/Loader';
 import Message from '../components/Message';
 import Meta from '../components/Meta';
@@ -69,33 +68,37 @@ const ProductScreen = () => {
 
   // ✅ Currency logic
   const { currency, rates } = useContext(CurrencyContext);
-  const symbols = {
-    NGN: '₦',
-    USD: '$',
-    EUR: '€',
-    GBP: '£',
-    JPY: '¥',
-  };
-  // formatter for thousands + 2dp
-const nf = new Intl.NumberFormat(
-  currency === 'NGN' ? 'en-NG' : 'en-US',
-  { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-);
+  const symbols = { NGN: '₦', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
 
-// numeric prices
-const priceNum = product ? product.price * (rates[currency] || 1) : 0;
-const salePriceNum = product?.salePrice
-  ? product.salePrice * (rates[currency] || 1)
-  : null;
+  const nf = new Intl.NumberFormat(
+    currency === 'NGN' ? 'en-NG' : 'en-US',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+  );
+  const rate = rates[currency] || 1;
 
-// formatted strings
-const formattedPrice = nf.format(priceNum);
-const formattedSalePrice = salePriceNum != null ? nf.format(salePriceNum) : null;
+  // ---------- Price helpers (works with originalPrice or discountPercent) ----------
+  const currentRaw = Number(product?.price || 0);
+  const hasServerOriginal = product?.originalPrice != null && Number(product.originalPrice) > 0;
+  const derivedBaseFromPercent =
+    typeof product?.discountPercent === 'number' && product.discountPercent > 0
+      ? Math.round(currentRaw / (1 - product.discountPercent / 100))
+      : null;
 
-  const convertedPrice = product ? (product.price * (rates[currency] || 1)).toFixed(2) : 0;
-  const convertedSalePrice = product?.salePrice
-    ? (product.salePrice * (rates[currency] || 1)).toFixed(2)
-    : null;
+  const baseRaw = hasServerOriginal
+    ? Number(product.originalPrice)
+    : (derivedBaseFromPercent ?? currentRaw);
+
+  const hasDiscount = baseRaw > currentRaw;
+  const percentOff = hasDiscount
+    ? Math.round((1 - currentRaw / baseRaw) * 100)
+    : 0;
+
+  // Converted & formatted numbers
+  const currentConverted = currentRaw * rate;
+  const baseConverted = baseRaw * rate;
+
+  const formattedCurrent = nf.format(currentConverted);
+  const formattedBase = nf.format(baseConverted);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -235,29 +238,30 @@ const formattedSalePrice = salePriceNum != null ? nf.format(salePriceNum) : null
                           </span>
                         )}
                       </div>
-
-                      {/* <div className="mb-4">
-                        <Rating value={product.rating} text={`${product.numReviews} reviews`} />
-                      </div> */}
                     </div>
 
-                    {/* Price Section with conversion */}
+                    {/* Price Section */}
                     <div className="border-t border-gray-200 pt-4">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-end justify-between mb-2">
                         <span className="text-lg font-medium text-gray-700">Price</span>
-<span className="text-2xl sm:text-3xl font-bold text-gray-900">
-  {symbols[currency]} {formattedPrice}
-</span>
-                      </div>
-                      
-                      {product.isOnSale && convertedSalePrice && (
-                        <div className="text-sm text-green-600 mb-2">
-                          <span className="bg-green-100 px-2 py-1 rounded">On Sale!</span>
-                          <span className="ml-2">
-                            Original: <span className="line-through">{symbols[currency]} {convertedSalePrice}</span>
+
+                        {/* Old (struck) + New + % off */}
+                        <div className="flex items-baseline gap-2">
+                          {hasDiscount && (
+                            <span className="text-gray-500 line-through text-base sm:text-xl">
+                              {symbols[currency]} {formattedBase}
+                            </span>
+                          )}
+                          <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+                            {symbols[currency]} {formattedCurrent}
                           </span>
+                          {hasDiscount && (
+                            <span className="ml-1 text-sm font-semibold text-green-700">
+                              −{percentOff}%
+                            </span>
+                          )}
                         </div>
-                      )}
+                      </div>
 
                       <div className="flex items-center justify-between mb-4">
                         <span className="font-medium text-gray-700">Status</span>
@@ -274,7 +278,7 @@ const formattedSalePrice = salePriceNum != null ? nf.format(salePriceNum) : null
                     </div>
 
                     <button
-                      className="w-full bg-gray-900 hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      className="w-full bg-gray-900 hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                       type="button"
                       disabled={product.countInStock === 0}
                       onClick={addToCartHandler}
@@ -324,10 +328,6 @@ const formattedSalePrice = salePriceNum != null ? nf.format(salePriceNum) : null
                       <span className="font-medium text-gray-600">Framed:</span>
                       <span className="text-gray-800">{product.framed ? 'Yes' : 'No'}</span>
                     </div>
-                    {/* <div className="flex justify-between">
-                      <span className="font-medium text-gray-600">Limited Edition:</span>
-                      <span className="text-gray-800">{product.isLimitedEdition ? 'Yes' : 'No'}</span>
-                    </div> */}
                   </div>
 
                   {product.tags?.length > 0 && (
@@ -395,26 +395,6 @@ const formattedSalePrice = salePriceNum != null ? nf.format(salePriceNum) : null
                         <span className="text-gray-800">{product.sku}</span>
                       </div>
                     )}
-                    {/* {product.currency && (
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-600">Original Currency:</span>
-                        <span className="text-gray-800">{product.currency}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="font-medium text-gray-600">Featured:</span>
-                      <span className="text-gray-800">{product.isFeatured ? 'Yes' : 'No'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium text-gray-600">Active:</span>
-                      <span className="text-gray-800">{product.isActive ? 'Yes' : 'No'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium text-gray-600">Approved:</span>
-                      <span className={`${product.approved ? 'text-green-600' : 'text-red-600'}`}>
-                        {product.approved ? 'Yes' : 'Pending'}
-                      </span>
-                    </div> */}
                     {product.createdAt && (
                       <div className="flex justify-between">
                         <span className="font-medium text-gray-600">Listed:</span>

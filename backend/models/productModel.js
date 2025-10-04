@@ -1,59 +1,53 @@
+// models/productModel.js
 import mongoose from 'mongoose';
 
-// ✅ Simple schema definitions without potential conflicts
-const reviewSchema = mongoose.Schema(
+const reviewSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     rating: { type: Number, required: true },
     comment: { type: String, required: true },
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: 'User',
-    },
+    user: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
   },
   { timestamps: true }
 );
 
-const variationSchema = mongoose.Schema({
-  size: {
-    type: String,
-    enum: ['A4', 'A3', 'A2', 'A1']
-  },
+// Individual variation (optional per-variation discounts)
+const variationSchema = new mongoose.Schema({
+  size: { type: String, enum: ['A4', 'A3', 'A2', 'A1'] },
   framed: { type: Boolean, default: false },
   price: { type: Number },
+  // Per-variation discount (optional; you can ignore these in your current UI)
+  originalPrice: { type: Number, default: null },
+  discountPercent: { type: Number, default: 0, min: 0, max: 90 },
+
   stock: { type: Number, default: 0 },
   sku: { type: String },
   image: { type: String },
 });
 
-const specificationSchema = mongoose.Schema({
+const specificationSchema = new mongoose.Schema({
   key: { type: String, required: true },
   value: { type: String, required: true },
 });
 
-const productSchema = mongoose.Schema(
+const productSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: 'User',
-    },
+    user: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
 
     // Core fields
     name: { type: String, required: true },
     description: { type: String, required: true },
 
-    // Category/collection fields
+    // Category/collection
     category: {
       type: String,
       enum: [
-        "Abstract",
-        "Realism",
-        "Afro-Futurism",
-        "Contemporary",
-        "Traditional",
-        'Other'
+        'Abstract',
+        'Realism',
+        'Afro-Futurism',
+        'Contemporary',
+        'Traditional',
+        'Other',
       ],
       default: 'Other',
     },
@@ -66,28 +60,33 @@ const productSchema = mongoose.Schema(
     // Art-specific fields
     type: {
       type: String,
-  enum: [
-    'Original',
-    'Original Artwork',
-    'Limited Edition Print',
-    'Open Edition Print',
-    'Digital Download',
-    'Sculpture',
-    'Mixed-Media','Abstract', 'Realism', 'Afro-Futurism', 'Other'
-  ],
+      enum: [
+        'Original',
+        'Original Artwork',
+        'Limited Edition Print',
+        'Open Edition Print',
+        'Digital Download',
+        'Sculpture',
+        'Mixed-Media',
+        'Print',
+        'Photography',
+        'Other',
+      ],
     },
     medium: {
       type: String,
-        enum: [
-    'Oil Painting',
-    'Acrylic Painting',
-    'Watercolor',
-    'Digital Print',
-    'Canvas Print',
-    'Sculpture',
-    'Mixed Media',
-    'Photography','Painting', 'Print', 'Sculpture', 'Mixed Media'
-  ],
+      enum: [
+        'Oil Painting',
+        'Acrylic Painting',
+        'Watercolor',
+        'Digital Print',
+        'Canvas Print',
+        'Sculpture',
+        'Mixed Media',
+        'Photography',
+        'Painting',
+        'Print',
+      ],
       required: true,
     },
     style: {
@@ -100,7 +99,7 @@ const productSchema = mongoose.Schema(
         'Afro-Futurism',
         'Pop Art',
         'Surrealism',
-        'Other','Original', 'Mixed-Media', 'Print', 'Sculpture'
+        'Other',
       ],
       default: 'Other',
     },
@@ -110,24 +109,26 @@ const productSchema = mongoose.Schema(
     isLimitedEdition: { type: Boolean, default: false },
     editionSize: { type: Number },
 
-    // Dimensions as separate fields (avoiding nested objects)
+    // Dimensions
     dimensionLength: { type: Number },
     dimensionWidth: { type: Number },
     dimensionHeight: { type: Number },
     weight: { type: Number },
 
+    // Pricing (root-level)
+    price: { type: Number, required: true, default: 0 }, // ACTIVE price (may be discounted)
+    originalPrice: { type: Number, default: null },      // Base price when discount active
+    discountPercent: { type: Number, default: 0, min: 0, max: 90 }, // 0 = no discount
 
-
-    // Pricing
-    price: { type: Number, required: true, default: 0 },
     currency: {
       type: String,
       enum: ['NGN', 'USD', 'EUR', 'GBP'],
-      default: 'NGN'
+      default: 'NGN',
     },
+
     countInStock: { type: Number, required: true, default: 1 },
 
-    // Variations array
+    // Variations
     variations: [variationSchema],
 
     // Reviews
@@ -135,13 +136,13 @@ const productSchema = mongoose.Schema(
     rating: { type: Number, required: true, default: 0 },
     numReviews: { type: Number, required: true, default: 0 },
 
-    // Status fields
+    // Status
     approved: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },
     isFeaturedCollection: { type: Boolean, default: false },
 
-    // Additional fields
+    // Additional
     artistName: { type: String },
     tags: [String],
     sku: { type: String },
@@ -149,12 +150,10 @@ const productSchema = mongoose.Schema(
     metaTitle: { type: String },
     metaDescription: { type: String },
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
 
-// Add indexes
+// Indexes
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ medium: 1 });
 productSchema.index({ style: 1 });
@@ -162,12 +161,5 @@ productSchema.index({ price: 1 });
 productSchema.index({ approved: 1 });
 productSchema.index({ user: 1 });
 
-// ✅ Check if model already exists to avoid re-compilation
-let Product;
-try {
-  Product = mongoose.model('Product');
-} catch (error) {
-  Product = mongoose.model('Product', productSchema);
-}
-
-export default Product;
+// Safe export without recompilation errors in dev
+export default mongoose.models.Product || mongoose.model('Product', productSchema);

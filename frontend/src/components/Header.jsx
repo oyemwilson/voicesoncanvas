@@ -240,6 +240,20 @@ const newSalesCount       = newSales.length;
                     )}
                   </Link>
                 )}
+                {userInfo.isSeller && userInfo.sellerApproved && (
+                  <Link
+                    to="/seller/products/:pageNumber?"
+                    className="flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100"
+                    onClick={closeAllMenus}
+                  >
+                    <span>My Product</span>
+                    {newSalesCount > 0 && (
+                      <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                        {newSalesCount}
+                      </span>
+                    )}
+                  </Link>
+                )}
                     <button
                       onClick={logoutHandler}
                       className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"

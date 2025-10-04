@@ -61,78 +61,82 @@ import AdminDisputesScreen from './screens/admin/AdminDisputesScreen';
 import DeliveryReturnsPage from './screens/DeliveryReturnsScreen';
 import GeneralTermsOfUse from './screens/GeneralTermofUse';
 import PrivacyPolicy from './screens/PrivacyPolicy';
+import HelpFAQ from './screens/Faq';
+import ArtistProductsScreen from './screens/ArtistProductsScreen';
+import Waitlist from './screens/Waitlist';
 
-const SUPPORTED_PAYPAL = ['USD','EUR','GBP','JPY'];
+const SUPPORTED_PAYPAL = ['USD', 'EUR', 'GBP', 'JPY'];
 const router = createBrowserRouter(
   createRoutesFromElements(
-    
-    <Route path="/" element={<App />} errorElement={<NotFoundScreen />}>
-      
-      {/* Home and product listing */}
-      <Route index={true} path="/" element={<HomeScreen />} />
-      <Route path="/search/:keyword" element={<HomeScreen />} />
-      <Route path="/page/:pageNumber" element={<HomeScreen />} />
-      <Route path="/search/:keyword/page/:pageNumber" element={<HomeScreen />} />
-      <Route path="/artists" element={<ArtistPage />} />
-      <Route path="/shop" element={<ShopPage />} />
-      {/* Product details and cart */}
-      <Route path="/product/:id" element={<ProductScreen />} />
-      <Route path="/cart" element={<CartScreen />} />
-      <Route path="/artists/:id" element={<ArtistProfileScreen />} />
-      <Route path="/impact" element={<ImpactScreen />} />
-      <Route path="/about" element={<AboutScreen />} />
-      <Route path="/contact" element={<ContactScreen />} />
-      <Route path="/blogs" element={<BlogListScreen />} />
-      <Route path="/blog/:id" element={<BlogDetailScreen />} />
+    <>
+      {/* Standalone Waitlist route (no App layout) */}
+      <Route path="/waitlist" element={<Waitlist />} />
 
+      {/* All other routes remain inside App layout */}
+      <Route path="/" element={<App />} errorElement={<NotFoundScreen />}>
+        {/* Home and product listing */}
+        <Route index={true} path="/" element={<HomeScreen />} />
+        <Route path="/search/:keyword" element={<HomeScreen />} />
+        <Route path="/page/:pageNumber" element={<HomeScreen />} />
+        <Route path="/search/:keyword/page/:pageNumber" element={<HomeScreen />} />
+        <Route path="/artists" element={<ArtistPage />} />
+        <Route path="/shop" element={<ShopPage />} />
+
+        {/* Product details and cart */}
+        <Route path="/product/:id" element={<ProductScreen />} />
+        <Route path="/cart" element={<CartScreen />} />
+        <Route path="/artists/:id" element={<ArtistProfileScreen />} />
+        <Route path="/impact" element={<ImpactScreen />} />
+        <Route path="/about" element={<AboutScreen />} />
+        <Route path="/contact" element={<ContactScreen />} />
+        <Route path="/blogs" element={<BlogListScreen />} />
+        <Route path="/blog/:id" element={<BlogDetailScreen />} />
 
         <Route path="deliveries-returns" element={<DeliveryReturnsPage />} />
         <Route path="privacy" element={<PrivacyPolicy />} />
         <Route path="term-of-use" element={<GeneralTermsOfUse />} />
+        <Route path="faq" element={<HelpFAQ />} />
 
-      {/* Auth routes */}
-      <Route path="/login" element={<LoginScreen />} />
-      <Route path="/register" element={<RegisterScreen />} />
-      <Route path="/verify-email" element={<VerifyEmailScreen />} />
-      <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
-      <Route path="/verify-reset-otp" element={<VerifyResetOTPScreen />} />
-      <Route path="/reset-password" element={<ResetPasswordScreen />} />
+        {/* Auth routes */}
+        <Route path="/login" element={<LoginScreen />} />
+        <Route path="/register" element={<RegisterScreen />} />
+        <Route path="/verify-email" element={<VerifyEmailScreen />} />
+        <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+        <Route path="/verify-reset-otp" element={<VerifyResetOTPScreen />} />
+        <Route path="/reset-password" element={<ResetPasswordScreen />} />
 
-
-
-      {/* Private (logged in) routes */}
-      <Route path="" element={<PrivateRoute />}>
-        <Route path="/shipping" element={<ShippingScreen />} />
-        <Route path="/payment" element={<PaymentScreen />} />
-        <Route path="/placeorder" element={<PlaceOrderScreen />} />
-        <Route path="/order/:id" element={<OrderScreen />} />
-        <Route path="/profile" element={<ProfileScreen />} />
-        <Route path="/wishlist" element={<WishlistScreen />} />
-        <Route path="/request-seller" element={<RequestSellerScreen />} />
-        <Route path="/upload-art" element={<UploadArtScreen />} />
+        {/* Private (logged in) routes */}
+        <Route path="" element={<PrivateRoute />}>
+          <Route path="/shipping" element={<ShippingScreen />} />
+          <Route path="/payment" element={<PaymentScreen />} />
+          <Route path="/placeorder" element={<PlaceOrderScreen />} />
+          <Route path="/order/:id" element={<OrderScreen />} />
+          <Route path="/profile" element={<ProfileScreen />} />
+          <Route path="/wishlist" element={<WishlistScreen />} />
+          <Route path="/request-seller" element={<RequestSellerScreen />} />
+          <Route path="/upload-art" element={<UploadArtScreen />} />
           <Route path="/ship/order/:id" element={<ShipOrderScreen />} />
-            <Route path="/seller/orders" element={<SellerOrdersScreen />} />
+          <Route path="/seller/orders" element={<SellerOrdersScreen />} />
+          <Route path="/seller/products/:pageNumber?" element={<ArtistProductsScreen />} />
+        </Route>
 
+        {/* Admin-only routes */}
+        <Route path="" element={<AdminRoute />}>
+          <Route path="/admin/orderlist" element={<OrderListScreen />} />
+          <Route path="/admin/productlist" element={<ProductListScreen />} />
+          <Route path="/admin/productlist/:pageNumber" element={<ProductListScreen />} />
+          <Route path="/admin/product/:id/edit" element={<ProductEditScreen />} />
+          <Route path="/admin/userlist" element={<UserListScreen />} />
+          <Route path="/admin/user/:id/edit" element={<UserEditScreen />} />
+          <Route path="/admin/featured-products" element={<AdminFeaturedProducts />} />
+          <Route path="/admin/featured-artists" element={<AdminFeaturedArtists />} />
+          <Route path="/admin/seller-requests" element={<SellerRequestsScreen />} />
+          <Route path="/admin/unapproved-art" element={<UnapprovedArtScreen />} />
+          <Route path="/admin/blogs" element={<AdminBlogScreen />} />
+          <Route path="/admin/disputes" element={<AdminDisputesScreen />} />
+        </Route>
       </Route>
-
-      {/* Admin-only routes */}
-      <Route path="" element={<AdminRoute />}>
-        <Route path="/admin/orderlist" element={<OrderListScreen />} />
-        <Route path="/admin/productlist" element={<ProductListScreen />} />
-        <Route path="/admin/productlist/:pageNumber" element={<ProductListScreen />} />
-        <Route path="/admin/product/:id/edit" element={<ProductEditScreen />} />
-        <Route path="/admin/userlist" element={<UserListScreen />} />
-        <Route path="/admin/user/:id/edit" element={<UserEditScreen />} />
-        <Route path="/admin/featured-products" element={<AdminFeaturedProducts />} />
-        <Route path="/admin/featured-artists" element={<AdminFeaturedArtists />} />
-        <Route path="/admin/seller-requests" element={<SellerRequestsScreen />} />
-        <Route path="/admin/unapproved-art" element={<UnapprovedArtScreen />} />
-        <Route path="/admin/blogs" element={<AdminBlogScreen />} />
-        <Route path='/admin/disputes' element={<AdminDisputesScreen />} />
-
-
-      </Route>
-    </Route>
+    </>
   )
 );
 

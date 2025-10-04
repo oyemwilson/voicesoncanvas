@@ -201,6 +201,7 @@ const startEdit = (blog) => {
                     onChange={uploadFileHandler}
                     className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   />
+                  <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF — max 10MB</p>
                   {uploading && <p className="mt-2 text-sm text-blue-600">Uploading image...</p>}
                   {form.image && (
                     <div className="mt-4">

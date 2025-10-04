@@ -29,7 +29,7 @@ const UploadArtScreen = () => {
   const [countInStock, setCountInStock] = useState('')
 
   // Pricing & stock – keep existing lines above
-const [framed, setFramed] = useState('');
+  const [framed, setFramed] = useState('');
 
   // Images
   const [images, setImages] = useState([])
@@ -67,7 +67,7 @@ const [framed, setFramed] = useState('');
     if (!userInfo) return toast.error('Please log in first.')
     if (!userInfo.isSeller)
       return toast.error('Only approved sellers can upload art.')
-    
+
     // Enhanced validation with detailed logging
     if (!name.trim()) {
       console.error('❌ Name validation failed:', name)
@@ -105,58 +105,58 @@ const [framed, setFramed] = useState('');
       console.error('❌ Images validation failed:', images)
       return toast.error('Please select at least one image.')
     }
-if (framed === '') {
-  console.error('❌ Framed validation failed:', framed);
-  return toast.error('Please choose if the artwork is framed.');
-}
+    if (framed === '') {
+      console.error('❌ Framed validation failed:', framed);
+      return toast.error('Please choose if the artwork is framed.');
+    }
 
     console.log('✅ All validations passed')
 
     try {
-  // 1️⃣ Upload images
-  console.log('📤 Starting image upload...')
-  const uploaded = []
-  for (const [index, file] of images.entries()) {
-    console.log(`📷 Uploading image ${index + 1}/${images.length}: ${file.name}`)
-    const fd = new FormData()
-    fd.append('image', file)
-    const response = await uploadProductImage(fd).unwrap()
-    console.log(`✅ Image ${index + 1} uploaded:`, response)
-    console.log(`📋 Response type:`, typeof response)
-    console.log(`📋 Response keys:`, Object.keys(response))
-    
-    // Fix: Handle your specific API response structure
-    let imageUrl
-    if (typeof response === 'string') {
-      // If response is directly a URL string
-      imageUrl = response
-    } else if (response.image) {
-      // Your API returns: { message: '...', image: 'cloudinary-url', filename: '...' }
-      imageUrl = response.image
-    } else if (response.url) {
-      // Fallback for other possible formats
-      imageUrl = response.url
-    } else if (response.path) {
-      // Another fallback
-      imageUrl = response.path
-    } else {
-      // Log the actual response to debug
-      console.error('❌ Unexpected upload response format:', response)
-      console.error('❌ Available properties:', Object.keys(response))
-      throw new Error(`Image upload failed: No valid image URL found in response for ${file.name}`)
-    }
-    
-    // Validate that we got a valid URL string
-    if (!imageUrl || typeof imageUrl !== 'string') {
-      console.error('❌ Invalid image URL extracted:', imageUrl)
-      throw new Error(`Image upload failed: Invalid image URL for ${file.name}`)
-    }
-    
-    console.log(`📷 Extracted image URL:`, imageUrl)
-    uploaded.push(imageUrl)
-  }
+      // 1️⃣ Upload images
+      console.log('📤 Starting image upload...')
+      const uploaded = []
+      for (const [index, file] of images.entries()) {
+        console.log(`📷 Uploading image ${index + 1}/${images.length}: ${file.name}`)
+        const fd = new FormData()
+        fd.append('image', file)
+        const response = await uploadProductImage(fd).unwrap()
+        console.log(`✅ Image ${index + 1} uploaded:`, response)
+        console.log(`📋 Response type:`, typeof response)
+        console.log(`📋 Response keys:`, Object.keys(response))
 
-  console.log('✅ All images uploaded:', uploaded)
+        // Fix: Handle your specific API response structure
+        let imageUrl
+        if (typeof response === 'string') {
+          // If response is directly a URL string
+          imageUrl = response
+        } else if (response.image) {
+          // Your API returns: { message: '...', image: 'cloudinary-url', filename: '...' }
+          imageUrl = response.image
+        } else if (response.url) {
+          // Fallback for other possible formats
+          imageUrl = response.url
+        } else if (response.path) {
+          // Another fallback
+          imageUrl = response.path
+        } else {
+          // Log the actual response to debug
+          console.error('❌ Unexpected upload response format:', response)
+          console.error('❌ Available properties:', Object.keys(response))
+          throw new Error(`Image upload failed: No valid image URL found in response for ${file.name}`)
+        }
+
+        // Validate that we got a valid URL string
+        if (!imageUrl || typeof imageUrl !== 'string') {
+          console.error('❌ Invalid image URL extracted:', imageUrl)
+          throw new Error(`Image upload failed: Invalid image URL for ${file.name}`)
+        }
+
+        console.log(`📷 Extracted image URL:`, imageUrl)
+        uploaded.push(imageUrl)
+      }
+
+      console.log('✅ All images uploaded:', uploaded)
 
       // 2️⃣ Build payload - ensure all required fields are included
       const payload = {
@@ -165,7 +165,7 @@ if (framed === '') {
         price: parseFloat(price),
         image: uploaded[0], // Main image (required)
         category,
-        
+
         // Additional required/important fields
         description: description.trim(),
         medium,
@@ -173,14 +173,14 @@ if (framed === '') {
         type,
         countInStock: parseInt(countInStock, 10),
         framed: framed === 'true',
-        
-        
+
+
         // Optional fields
         ...(uploaded.length > 1 && { images: uploaded.slice(1) }),
         ...(salePrice && { salePrice: parseFloat(salePrice) }),
         ...(brand.trim() && { brand: brand.trim() }),
         ...(weight && { weight: parseFloat(weight) }),
-        
+
         // Arrays - only include if not empty
         ...(tags.trim() && {
           tags: tags
@@ -194,7 +194,7 @@ if (framed === '') {
             .map((t) => t.trim())
             .filter(Boolean)
         }),
-        
+
         // Dimensions - only include if at least one dimension is provided
         ...((length || width || height) && {
           dimensions: {
@@ -203,11 +203,11 @@ if (framed === '') {
             ...(height && { height: parseFloat(height) }),
           }
         }),
-        
+
         // SEO fields
         ...(metaTitle.trim() && { metaTitle: metaTitle.trim() }),
         ...(metaDescription.trim() && { metaDescription: metaDescription.trim() }),
-        
+
         // Default values
         isFeaturedCollection: false,
       }
@@ -220,7 +220,7 @@ if (framed === '') {
       // Validate payload has required fields before sending
       const requiredFields = ['name', 'price', 'image', 'category']
       const missingFields = requiredFields.filter(field => !payload[field])
-      
+
       if (missingFields.length > 0) {
         console.error('❌ Missing required fields in payload:', missingFields)
         return toast.error(`Missing required fields: ${missingFields.join(', ')}`)
@@ -255,17 +255,17 @@ if (framed === '') {
       setHeight('')
       setImages([])
       setFramed('')
-      
+
       const imageInput = document.getElementById('imageInput')
       if (imageInput) {
         imageInput.value = ''
       }
-      
+
       console.log('✅ Form reset complete')
-      
+
     } catch (err) {
       console.error('❌ Upload failed:', err)
-      
+
       // Enhanced error logging
       if (err.data) {
         console.error('API Error Data:', err.data)
@@ -273,7 +273,7 @@ if (framed === '') {
       if (err.status) {
         console.error('API Error Status:', err.status)
       }
-      
+
       const errorMessage = err?.data?.message || err?.message || err?.error || 'Upload failed.'
       toast.error(errorMessage)
     }
@@ -385,20 +385,20 @@ if (framed === '') {
                 </div>
               </div>
             </div>
-            
+
             {images.length > 0 && (
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-gray-700">Selected Files</h3>
                 <ul className="divide-y divide-gray-200">
                   {images.map((img, i) => (
                     <li key={i} className="py-3 flex justify-between items-center">
-                      <div className="flex items-center">
+                      <div className="flex items-center min-w-0">
                         {i === 0 && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
                             Main
                           </span>
                         )}
-                        <span className="text-sm text-gray-600 truncate max-w-xs">{img.name}</span>
+                        <span className="text-sm text-gray-600 truncate block max-w-[12rem]">{img.name}</span>
                       </div>
                       <button
                         type="button"
@@ -442,16 +442,16 @@ if (framed === '') {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Framed *</label>
 
-<select
- className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-  value={framed}
-  onChange={(e) => setFramed(e.target.value)}
-  required
->
-  <option value="">Select option</option>
-  <option value="true">Yes (Framed)</option>
-  <option value="false">No (Unframed)</option>
-</select>
+              <select
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={framed}
+                onChange={(e) => setFramed(e.target.value)}
+                required
+              >
+                <option value="">Select option</option>
+                <option value="true">Yes (Framed)</option>
+                <option value="false">No (Unframed)</option>
+              </select>
 
             </div>
 
@@ -485,7 +485,7 @@ if (framed === '') {
             {/* Dimensions */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">Dimensions (inches)</label>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {[
                   { label: 'Length', value: length, setter: setLength },
                   { label: 'Width', value: width, setter: setWidth },
@@ -501,7 +501,7 @@ if (framed === '') {
                         type="number"
                         step="0.1"
                         min="0"
-                        className="flex-1 block w-full rounded-none rounded-r-md border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                        className="flex-1 block w-full ml-20 rounded-none rounded-r-md border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="0.0"
                         value={dim.value}
                         onChange={(e) => dim.setter(e.target.value)}
@@ -511,6 +511,7 @@ if (framed === '') {
                 ))}
               </div>
             </div>
+
           </div>
         </div>
 

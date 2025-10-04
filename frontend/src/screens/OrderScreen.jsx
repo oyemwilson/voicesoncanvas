@@ -233,6 +233,22 @@ const isSeller = order.orderItems.some((i) => String(getId(i.seller)) === String
                     {item.name}
                   </Link>
                   <p className="text-sm text-gray-600">Packaging: {order.packagingOption}</p>
+                  {/* ✅ Seller line (INSIDE the map, uses `item`) */}
+        <p className="text-xs text-gray-600 mt-0.5">
+          Seller:{' '}
+          {(typeof item.seller === 'object' && item.seller?.name) || 'Unknown'}
+          {typeof item.seller === 'object' && item.seller?.email && (
+            <>
+              {' • '}
+              <a
+                href={`mailto:${item.seller.email}`}
+                className="text-blue-600 hover:underline break-all"
+              >
+                {item.seller.email}
+              </a>
+            </>
+          )}
+        </p>
                 </div>
 <div className="text-gray-700">
   {item.qty} x {symbol} {nf.format(Number(item.price) * rate)} = {symbol} {nf.format(Number(item.qty) * Number(item.price) * rate)}

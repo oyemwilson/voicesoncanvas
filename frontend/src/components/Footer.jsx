@@ -81,9 +81,14 @@ const Footer = () => {
                     Term Of Use
                   </Link>
                 </li>
-                <li>
+                <li className='mb-2'>
                   <Link to="/deliveries-returns" className="hover:underline">
                     Delivery &amp; Returns
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/faq" className="hover:underline">
+                    Help/FAQs
                   </Link>
                 </li>
               </ul>

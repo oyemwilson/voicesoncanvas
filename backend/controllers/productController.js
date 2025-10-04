@@ -465,6 +465,57 @@ type,
   });
 });
 
+export const updateProductDiscount = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { discountPercent } = req.body ?? {};
+  const value = Number(discountPercent);
+
+  if (!mongoose.isValidObjectId(id)) {
+    res.status(400);
+    throw new Error('Invalid product id');
+  }
+  if (!Number.isFinite(value) || value < 0 || value > 90) {
+    res.status(400);
+    throw new Error('Discount must be a number between 0 and 90');
+  }
+
+  const product = await Product.findById(id).select(
+    'user price originalPrice discountPercent'
+  );
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+
+  const isOwner = String(product.user) === String(req.user._id);
+  const isAdmin = !!req.user?.isAdmin;
+  if (!isOwner && !isAdmin) {
+    res.status(403);
+    throw new Error('Not authorized to modify this product');
+  }
+
+  if (value > 0) {
+    if (product.originalPrice == null) product.originalPrice = product.price;
+    const base = Number(product.originalPrice ?? product.price);
+    product.price = Math.max(0, Math.round(base * (1 - value / 100)));
+    product.discountPercent = Math.round(value);
+  } else {
+    if (product.originalPrice != null) product.price = product.originalPrice;
+    product.originalPrice = null;
+    product.discountPercent = 0;
+  }
+
+  await product.save();
+
+  res.json({
+    message: 'Discount updated',
+    productId: product._id,
+    price: product.price,
+    originalPrice: product.originalPrice,
+    discountPercent: product.discountPercent,
+  });
+});
+
 
 // @desc    Delete a product
 // @route   DELETE /api/products/:id
@@ -722,21 +773,25 @@ const getFeaturedCollections = asyncHandler(async (req, res) => {
 });
 
 // GET /api/products/artist/:artistId
+// GET /api/products/artist/:artistId
 const getProductsByArtist = asyncHandler(async (req, res) => {
   const { artistId } = req.params;
-  
-  // Validate ObjectId
-  if (!mongoose.Types.ObjectId.isValid(artistId)) {
+
+  if (!mongoose.isValidObjectId(artistId)) {
     res.status(400);
-    throw new Error('Invalid artist ID');
+    throw new Error('Invalid artist id');
   }
-  
-  const products = await Product.find({ user: artistId, approved: true })
+
+  // IMPORTANT: include originalPrice + discountPercent in select
+  const products = await Product.find({ user: artistId })
+    .select('name image price originalPrice discountPercent user')
     .populate('user', 'name artistProfile')
-    .select('name image price user');
-    
+    .sort({ createdAt: -1 })
+    .lean();
+
   res.json(products);
 });
+
 
 // @desc    Get unapproved products
 // @route   GET /api/products/unapproved

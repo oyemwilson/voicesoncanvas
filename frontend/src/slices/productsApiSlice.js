@@ -42,6 +42,15 @@ export const productsApiSlice = apiSlice.injectEndpoints({
   }),
   invalidatesTags: ['Products'],
 }),
+    updateProductDiscount: builder.mutation({
+      query: ({ id, discountPercent }) => ({
+        url: `${PRODUCTS_URL}/${id}/discount`,
+        method: 'PUT',
+        body: { discountPercent },
+      }),
+      invalidatesTags: (r, e, { id }) => [{ type: 'Product', id }],
+    }),
+
 
     deleteProduct: builder.mutation({
       query: (productId) => ({
@@ -232,6 +241,7 @@ export const {
   useToggleFeaturedCollectionMutation, // ✅ added
   useGetFeaturedCollectionsQuery,      // ✅ added
   useGetProductsByArtistQuery,          // ✅ added
-  useGetUnapprovedProductsQuery
+  useGetUnapprovedProductsQuery,
+    useUpdateProductDiscountMutation,
 } = productsApiSlice;
 

@@ -16,7 +16,7 @@ const slides = [
     title: 'Artists: Reach Thousands of Buyers',
     description:
       'Join our vibrant community of creators—showcase your work, build your audience, and sell directly to art enthusiasts around the world.',
-    buttonText: 'Sign Up to Sell',
+    buttonText: 'Sign Up ',
     buttonLink: '/register',
   },
   {
@@ -25,7 +25,7 @@ const slides = [
     title: 'Collectors: Discover Exclusive Pieces',
     description:
       'Browse curated collections of original artworks and limited editions—sign up now to start buying one-of-a-kind treasures.',
-    buttonText: 'Sign Up to Buy',
+    buttonText: 'Sign Up ',
     buttonLink: '/register',
   },
   {
@@ -34,7 +34,7 @@ const slides = [
     title: 'Grow Your Artistic Brand',
     description:
       'Upload your portfolio, tell your story, and connect with galleries and buyers—create your free artist profile today.',
-    buttonText: 'Join as Artist',
+    buttonText: 'Sign Up ',
     buttonLink: '/register',
   },
   {
@@ -43,7 +43,7 @@ const slides = [
     title: 'Be First to See New Drops',
     description:
       'Stay ahead of the curve—sign up for access to pre-release exhibitions, limited-edition launches, and special offers.',
-    buttonText: 'Join to Explore',
+    buttonText: 'Sign Up ',
     buttonLink: '/register',
   },
 ];

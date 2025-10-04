@@ -26,7 +26,8 @@ import {
   approveProduct,
   getProductsByArtist,
   getUnapprovedProducts,
-  declineProduct
+  declineProduct,
+  updateProductDiscount
 } from '../controllers/productController.js';
 
 import { protect, admin, approvedSeller } from '../middleware/authMiddleware.js';
@@ -85,6 +86,10 @@ router.put('/:id/feature-collection', protect, admin, toggleFeaturedCollection);
 router.get('/artist/:artistId', getProductsByArtist);
 
 router.get('/unapproved', protect, admin, getUnapprovedProducts);
+
+
+
+router.put('/:id/discount', protect, updateProductDiscount);
 
 
 
