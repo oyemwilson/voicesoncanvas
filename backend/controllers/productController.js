@@ -450,6 +450,11 @@ type,
   if (salePrice !== undefined) product.salePrice = salePrice;
   if (isFeaturedCollection !== undefined) product.isFeaturedCollection = isFeaturedCollection;
 
+    if (framed !== undefined) product.framed = Boolean(framed);
+  if (medium !== undefined) product.medium = medium;
+  if (style !== undefined) product.style = style;
+  if (type !== undefined) product.type = type;
+
   // ✅ If a non-admin seller edits, reset approval
   if (!req.user.isAdmin) {
     product.approved = false;

@@ -45,34 +45,55 @@ const admin = (req, res, next) => {
     throw new Error('Not authorized as an admin');
   }
 };
-const approvedSeller = asyncHandler(async (req, res, next) => {
-  // Check if user is authenticated (assumes auth middleware runs first)
-  if (!req.user) {
-    res.status(401);
-    throw new Error('Not authenticated');
-  }
+// const approvedSeller = asyncHandler(async (req, res, next) => {
+//   // Check if user is authenticated (assumes auth middleware runs first)
+//   if (!req.user) {
+//     res.status(401);
+//     throw new Error('Not authenticated');
+//   }
 
-  // Get fresh user data to ensure seller status is current
-  const user = await User.findById(req.user._id);
+//   // Get fresh user data to ensure seller status is current
+//   const user = await User.findById(req.user._id);
   
-  if (!user) {
-    res.status(404);
-    throw new Error('User not found');
-  }
+//   if (!user) {
+//     res.status(404);
+//     throw new Error('User not found');
+//   }
 
-  // Check if user is a seller
+//   // Check if user is a seller
+//   if (!user.isSeller) {
+//     res.status(403);
+//     throw new Error('Access denied. You need to become a seller first. Please apply to become a seller.');
+//   }
+
+//   // Check if seller is approved
+//   if (!user.sellerApproved) {
+//     res.status(403);
+//     throw new Error('Access denied. Your seller account is pending approval. Please wait for admin approval.');
+//   }
+
+//   // If all checks pass, continue to next middleware/route
+//   next();
+// });
+
+const approvedSeller = asyncHandler(async (req, res, next) => {
+  if (!req.user) { res.status(401); throw new Error('Not authenticated'); }
+
+  // Admin bypass
+  if (req.user.isAdmin) return next();
+
+  // Otherwise require approved seller
+  // We can use req.user if it’s fresh; reload to be safe
+  const user = await User.findById(req.user._id).select('isSeller sellerApproved');
+  if (!user) { res.status(404); throw new Error('User not found'); }
   if (!user.isSeller) {
     res.status(403);
-    throw new Error('Access denied. You need to become a seller first. Please apply to become a seller.');
+    throw new Error('Access denied. Become a seller first.');
   }
-
-  // Check if seller is approved
   if (!user.sellerApproved) {
     res.status(403);
-    throw new Error('Access denied. Your seller account is pending approval. Please wait for admin approval.');
+    throw new Error('Access denied. Seller pending approval.');
   }
-
-  // If all checks pass, continue to next middleware/route
   next();
 });
 
