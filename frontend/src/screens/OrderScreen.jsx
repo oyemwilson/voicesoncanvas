@@ -171,12 +171,14 @@ const isSeller = order.orderItems.some((i) => String(getId(i.seller)) === String
           <div className="bg-white shadow-md rounded-lg p-6 mb-6">
             <h2 className="text-2xl font-semibold mb-4">Shipping</h2>
             <p><strong>Name:</strong> {order.user.name}</p>
-            <p>
-              <strong>Email:</strong>{' '}
-              <a href={`mailto:${order.user.email}`} className="text-blue-500 hover:underline">
-                {order.user.email}
-              </a>
-            </p>
+{isAdmin && (
+  <p>
+    <strong>Email:</strong>{' '}
+    <a href={`mailto:${order.user.email}`} className="text-blue-500 hover:underline">
+      {order.user.email}
+    </a>
+  </p>
+)}
             <p className="mb-4">
               <strong>Address:</strong> {order.shippingAddress.address}, {order.shippingAddress.city},{' '}
               {order.shippingAddress.postalCode}, {order.shippingAddress.country}
@@ -234,21 +236,22 @@ const isSeller = order.orderItems.some((i) => String(getId(i.seller)) === String
                   </Link>
                   <p className="text-sm text-gray-600">Packaging: {order.packagingOption}</p>
                   {/* ✅ Seller line (INSIDE the map, uses `item`) */}
-        <p className="text-xs text-gray-600 mt-0.5">
-          Seller:{' '}
-          {(typeof item.seller === 'object' && item.seller?.name) || 'Unknown'}
-          {typeof item.seller === 'object' && item.seller?.email && (
-            <>
-              {' • '}
-              <a
-                href={`mailto:${item.seller.email}`}
-                className="text-blue-600 hover:underline break-all"
-              >
-                {item.seller.email}
-              </a>
-            </>
-          )}
-        </p>
+<p className="text-xs text-gray-600 mt-0.5">
+  Seller:{' '}
+  {(typeof item.seller === 'object' && item.seller?.name) || 'Unknown'}
+  {/* 🔒 Seller email visible to admin only */}
+  {isAdmin && typeof item.seller === 'object' && item.seller?.email && (
+    <>
+      {' • '}
+      <a
+        href={`mailto:${item.seller.email}`}
+        className="text-blue-600 hover:underline break-all"
+      >
+        {item.seller.email}
+      </a>
+    </>
+  )}
+</p>
                 </div>
 <div className="text-gray-700">
   {item.qty} x {symbol} {nf.format(Number(item.price) * rate)} = {symbol} {nf.format(Number(item.qty) * Number(item.price) * rate)}

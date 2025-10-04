@@ -10,6 +10,13 @@ import { sendTemplateEmail, sendNotificationEmail } from '../utils/sendEmail.js'
 // @route   POST /api/orders
 // @access  Private
 const addOrderItems = asyncHandler(async (req, res) => {
+
+    const startTime = Date.now();
+  let lapTime = startTime;
+
+    console.log('1. Function started');
+
+
   const { orderItems, shippingAddress, paymentMethod, packagingOption } = req.body;
 
   if (!orderItems || orderItems.length === 0) {
@@ -20,20 +27,24 @@ const addOrderItems = asyncHandler(async (req, res) => {
   // 1️⃣ Build "trusted" order items from DB prices
   const itemsFromDB = await Product.find({
     _id: { $in: orderItems.map(x => x._id) }
-  });
+  }).select('price user seller'); // Only select needed fields
+    console.log(`2. Product find took: ${Date.now() - lapTime}ms`);
+  lapTime = Date.now();
 
   const dbOrderItems = orderItems.map(item => {
     const prod = itemsFromDB.find(p => p._id.toString() === item._id);
     return {
       ...item,
-      seller: prod.user || prod.seller, // your seller field
+      seller: prod.user || prod.seller,
       product: item._id,
       price: prod.price,
       _id: undefined
     };
   });
+    console.log(`3. Price calculation took: ${Date.now() - lapTime}ms`);
+  lapTime = Date.now();
 
-  // 2️⃣ Calculate totals (now includes serviceFee)
+  // 2️⃣ Calculate totals
   const { itemsPrice, serviceFee, taxPrice, shippingPrice, totalPrice } = calcPrices(dbOrderItems);
 
   // 3️⃣ Create & save the order
@@ -43,7 +54,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
     shippingAddress,
     paymentMethod,
     itemsPrice,
-    serviceFee, // Add serviceFee to the order
+    serviceFee,
     taxPrice,
     shippingPrice,
     totalPrice,
@@ -53,29 +64,35 @@ const addOrderItems = asyncHandler(async (req, res) => {
   });
 
   const createdOrder = await order.save();
+    console.log(`4. Order save took: ${Date.now() - lapTime}ms`);
+  lapTime = Date.now();
 
-  // 4️⃣ Send confirmation to **buyer**
-  try {
-    const buyer = await User.findById(req.user._id).select('email name');
+  // 4️⃣ ✅ IMPROVED: Send email asynchronously without waiting
+  sendPaymentReminderEmail(req.user._id, createdOrder._id.toString());
 
-    await sendNotificationEmail({
-      to: buyer.email,
-      type: 'paymentReminder', // <-- new template key
-      orderData: {
-        customerName: buyer.name,
-        orderId: createdOrder._id.toString()
-      }
-    });
-
-    console.log(`✅ Payment reminder sent to ${buyer.email}`);
-  } catch (err) {
-    console.error('❌ Failed to send payment reminder:', err);
-  }
-
-  // 6️⃣ Return the created order
+  // 5️⃣ Return response immediately
   res.status(201).json(createdOrder);
 });
 
+// ✅ Separate async function for email (non-blocking)
+const sendPaymentReminderEmail = async (userId, orderId) => {
+  try {
+    const buyer = await User.findById(userId).select('email name');
+    await sendNotificationEmail({
+      to: buyer.email,
+      type: 'paymentReminder',
+      orderData: {
+        customerName: buyer.name,
+        orderId: orderId
+      }
+    });
+    console.log(`✅ Payment reminder sent to ${buyer.email}`);
+  } catch (err) {
+    console.error('❌ Failed to send payment reminder:', err);
+    // Don't throw - this shouldn't affect the order creation
+  }
+    console.log(`✅ TOTAL ORDER CREATION TIME: ${Date.now() - startTime}ms`);
+};
 // @desc    Get logged in user orders
 // @route   GET /api/orders/myorders
 // @access  Private
