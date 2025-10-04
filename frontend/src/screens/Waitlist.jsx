@@ -8,11 +8,11 @@ export default function ArtSellerLanding() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+    <div className="min-h-screen bg-[#fffbe6]">
       {/* Minimal brand bar (no site-wide header/footer here) */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg" />
+
           <span className="text-xl font-bold text-gray-800">VoicesOnCanvas</span>
         </div>
       </nav>
@@ -20,21 +20,32 @@ export default function ArtSellerLanding() {
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
         <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-          Start selling your <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">art worldwide</span>
+          Start selling your <span className="text-transparent bg-clip-text bg-yellow-500">art worldwide</span>
         </h1>
 
         <p className="text-xl text-gray-600 max-w-2xl mb-10">
           VoicesOnCanvas is built for creators. Open your no‑code storefront, get secure payouts (Paystack/Stripe), ship with live rates, and track performance with seller analytics.
         </p>
 
+              <div className="relative md:h-[300px] h-[200px] w-[90vw] sm:w-[650px] md:w-[800px] mb-10">
+          <img
+            src="/images/waitlist.webp"
+            alt="Our Mission"
+            className="rounded-xl object-cover w-full h-full shadow-lg"
+          />
+        </div>  
+
         {/* CTA: Takes seller to the dedicated waitlist form route */}
         <div className="w-full max-w-md">
-          <button
-            onClick={() => navigate('/waitlist')}
-            className="w-full bg-gradient-to-r from-purple-500 to-blue-500 text-white py-3 rounded-lg font-medium hover:from-purple-600 hover:to-blue-600 transition-all duration-300 flex items-center justify-center"
+
+
+          <Link
+            to="https://docs.google.com/forms/d/e/1FAIpQLSdi14RyPBznZmCIm5EHVetE6dDt9gxjNBRa3OLH8pzgdzACXQ/viewform?usp=header"
+            className="w-full bg-yellow-500 text-white py-3 rounded-lg font-medium hover:bg-yellow-600 transition-all duration-300 flex items-center justify-center"
           >
             Join Seller Waitlist
-          </button>
+          </Link>
+
           <p className="text-sm text-gray-500 mt-4">Early sellers get reduced commission and priority placement at launch.</p>
         </div>
       </section>

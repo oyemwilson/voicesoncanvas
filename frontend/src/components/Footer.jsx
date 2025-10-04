@@ -6,23 +6,30 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-[#fffbe6]">
+    <footer className="bg-yellow-300">
       <div className="mx-auto w-full max-w-screen-xl p-4 py-6 lg:py-8">
         <div className="md:flex md:justify-between">
-          <div className="mb-6 md:mb-0">
-            <Link to="/" className="flex items-center">
-              <img
-                src="/images/Logo.png"
-                className="h-8 me-3"
-                alt="Voices on Canvas Logo"
-              />
-              <span className="self-center text-2xl font-semibold whitespace-nowrap">
-                Stay Connected
-              </span>
-            </Link>
-          </div>
+         <div className="mb-6 md:mb-0 flex flex-col items-start gap-3">
+  <Link to="/" className="flex items-center gap-3">
+    <img
+      src="/images/voclogo1.png"
+      className="h-16"
+      alt="Voices on Canvas Logo"
+    />
+    <span className="text-black self-center text-2xl font-semibold whitespace-nowrap">
+      Stay Connected
+    </span>
+  </Link>
 
-          <div className="grid grid-cols-2 gap-8 sm:gap-6 sm:grid-cols-3">
+  <img
+    src="/images/footer.webp"
+    className="h-[200px] w-auto object-contain mt-2 hidden sm:block rounded"
+    alt="Footer artwork"
+  />
+</div>
+
+
+          <div className="grid grid-cols-2 gap-8 sm:gap-6 sm:grid-cols-3 pt-4">
             <div>
               <h2 className="mb-6 text-sm font-semibold text-gray-900 uppercase">
                 Resources
@@ -30,11 +37,11 @@ const Footer = () => {
               <ul className="text-gray-500 font-medium">
                 {/* <Link to="/" className="block hover:text-black" >Home</Link>
                 <Link to="/shop" className="block hover:text-black" >Shop</Link> */}
-                <Link to="/artists" className="block hover:text-black mb-2" >Artist Profiles</Link>
-                <Link to="/impact" className="block hover:text-black mb-2" >Impact</Link>
-                <Link to="/about" className="block hover:text-black mb-2" >About Us</Link>
-                <Link to="/blogs" className="block hover:text-black mb-2" >Blog</Link>
-                <Link to="/contact" className="block hover:text-black mb-2" >Contact</Link>
+                <Link to="/artists" className="block text-black mb-2" >Artist Profiles</Link>
+                <Link to="/impact" className="block text-black mb-2" >Impact</Link>
+                <Link to="/about" className="block text-black mb-2" >About Us</Link>
+                <Link to="/blogs" className="block text-black mb-2" >Blog</Link>
+                <Link to="/contact" className="block text-black mb-2" >Contact</Link>
                 {/* <li className="mb-2">
                   <Link to="/flowbite" className="hover:underline">
                     Flowbite
@@ -52,7 +59,7 @@ const Footer = () => {
               <h2 className="mb-6 text-sm font-semibold text-gray-900 uppercase">
                 Follow us
               </h2>
-              <ul className="text-gray-500 font-medium">
+              <ul className="text-black font-medium">
                 <li className="mb-2">
                   <Link to="/github" className="hover:underline">
                     Twitter
@@ -70,7 +77,7 @@ const Footer = () => {
               <h2 className="mb-6 text-sm font-semibold text-gray-900 uppercase">
                 Legal
               </h2>
-              <ul className="text-gray-500 font-medium">
+              <ul className="text-black font-medium">
                 <li className="mb-2">
                   <Link to="/privacy" className="hover:underline">
                     Privacy Policy
@@ -99,7 +106,7 @@ const Footer = () => {
         <hr className="my-6 border-gray-200 sm:mx-auto lg:my-8" />
 
         <div className="sm:flex sm:items-center sm:justify-between">
-          <span className="text-sm text-gray-500 sm:text-center ">
+          <span className="text-sm text-black sm:text-center ">
             © {currentYear}{' '}
             <Link to="/" className="hover:underline">
               Voices on Canvas™
@@ -110,7 +117,7 @@ const Footer = () => {
           <div className="flex  mt-4 space-x-5 sm:mt-0">
             <a
               href="https://facebook.com/yourpage"
-              className="text-gray-500 hover:text-gray-900"
+              className="text-black hover:text-black"
             >
               <Facebook size={20} />
               <span className="sr-only">Facebook page</span>
@@ -118,7 +125,7 @@ const Footer = () => {
 
             <a
               href="https://twitter.com/yourhandle"
-              className="text-gray-500 hover:text-gray-900"
+              className="text-black hover:text-black"
             >
               <Twitter size={20} />
               <span className="sr-only">Twitter page</span>
@@ -126,7 +133,7 @@ const Footer = () => {
 
             <a
               href="https://dribbble.com/yourprofile"
-              className="text-gray-500 hover:text-gray-900"
+              className="text-black hover:text-black"
             >
               <Dribbble size={20} />
               <span className="sr-only">Dribbble account</span>

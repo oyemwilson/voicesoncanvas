@@ -58,7 +58,7 @@ export default function StudioCarousel() {
        pagination={{ clickable: true }}
                 autoplay={{ delay: 5000, disableOnInteraction: false }}
         loop
-        className="w-full rounded overflow-hidden"
+        className="w-full  overflow-hidden"
       >
         {slides.map((slide) => (
           <SwiperSlide key={slide.id}>

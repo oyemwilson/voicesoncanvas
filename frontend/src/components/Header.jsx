@@ -121,14 +121,14 @@ const newSalesCount       = newSales.length;
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       {/* TOP PROMO */}
-<div className="bg-[#fffbe6] text-yellow-900 text-sm py-0 px-4 flex justify-end items-center">
+<div className="bg-yellow-300 text-yellow-900 text-sm py-0 px-4 flex justify-end items-center">
   {/* Left Aligned Content */}
   {/* <div className="text-center tracking-wide">
     🌟 FREE SHIPPING ON ALL ORDERS ABOVE ₦50 · SHOP WITH CONFIDENCE
   </div> */}
 
   {/* Right Aligned Content (Currency Selector Bar) */}
-  <div className="flex items-center space-x-2  px-4 py-1 rounded-lg"> {/* Added padding and rounded corners for visual separation */}
+  <div className="flex items-center space-x-2  px-0 sm:px-4 py-2 sm:py-0 rounded-lg"> {/* Added padding and rounded corners for visual separation */}
     <label htmlFor="currency" className="font-medium text-gray-700">Currency:</label>
     <select
       id="currency"
@@ -146,27 +146,18 @@ const newSalesCount       = newSales.length;
 </div>
 
 
-      <div className="relative bg-[#ffefc0] overflow-hidden h-10 text-lg flex items-center text-yellow-900 border-t border-b border-black">
-        <div className="marquee-wrapper flex whitespace-nowrap">
-          <span className="marquee-content">
-            BUY MORE · SAVE MORE · GET REWARDED · FREE RETURNS · EXCLUSIVE DEALS ·
-          </span>
-          <span className="marquee-content">
-            BUY MORE · SAVE MORE · GET REWARDED · FREE RETURNS · EXCLUSIVE DEALS ·
-          </span>
-        </div>
-      </div>
+
 
       {/* TOP BAR */}
-      <div className="bg-[#fffbe6]">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between relative">
+      <div className="bg-yellow-300">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 py- flex items-center justify-between relative">
           {/* MOBILE LEFT */}
           <div className="flex items-center space-x-3 md:hidden">
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              <FaBars className="w-6 h-6" />
+              <FaBars className="w-6 h-6 text-black" />
             </button>
             <Link to="/wishlist" onClick={closeAllMenus}>
-              <FaHeart className="w-5 h-5" />
+              <FaHeart className="w-5 h-5 text-black" />
             </Link>
           </div>
 
@@ -185,7 +176,7 @@ const newSalesCount       = newSales.length;
             onClick={closeAllMenus}
           >
             <img
-              src="/images/Logo.png" // ✅ path from public folder
+              src="/images/voclogo1.png" // ✅ path from public folder
               alt="Voices on Canvas"
               className="h-12 md:h-20 w-auto"
             />
@@ -353,8 +344,8 @@ const newSalesCount       = newSales.length;
       </div>
 
       {/* NAV LINKS */}
-      <div className="hidden md:flex justify-center border-t border-gray-100 bg-[#fffbe6] ">
-        <nav className="flex items-center space-x-8 py-3 text-sm font-medium text-gray-700">
+      <div className="hidden md:flex justify-center py-1  bg-yellow-300 ">
+        <nav className="flex items-center space-x-8 py-2 text-sm font-medium text-gray-700">
           <Link to="/" className="hover:text-black" onClick={closeAllMenus}>Home</Link>
           <Link to="/shop" className="hover:text-black" onClick={closeAllMenus}>Shop</Link>
           <Link to="/artists" className="hover:text-black" onClick={closeAllMenus}>Artist Profiles</Link>
@@ -370,22 +361,22 @@ const newSalesCount       = newSales.length;
 
       {/* MOBILE MENU */}
       {mobileMenuOpen && (
-        <nav className="md:hidden bg-[#fffbe6] border-t border-gray-200 px-4 py-3 space-y-2">
-          <Link to="/" className="block hover:text-black" onClick={closeAllMenus}>Home</Link>
-          <Link to="/shop" className="block hover:text-black" onClick={closeAllMenus}>Shop</Link>
-          <Link to="/artists" className="block hover:text-black" onClick={closeAllMenus}>Artist Profiles</Link>
-          <Link to="/impact" className="block hover:text-black" onClick={closeAllMenus}>Impact</Link>
-          <Link to="/about" className="block hover:text-black" onClick={closeAllMenus}>About Us</Link>
-          <Link to="/blogs" className="block hover:text-black" onClick={closeAllMenus}>Blog</Link>
-          <Link to="/contact" className="block hover:text-black" onClick={closeAllMenus}>Contact</Link>
+        <nav className="md:hidden bg-yellow-300 px-4 py-3 space-y-2">
+          <Link to="/" className="block text-black" onClick={closeAllMenus}>Home</Link>
+          <Link to="/shop" className="block text-black" onClick={closeAllMenus}>Shop</Link>
+          <Link to="/artists" className="block text-black" onClick={closeAllMenus}>Artist Profiles</Link>
+          <Link to="/impact" className="block text-black" onClick={closeAllMenus}>Impact</Link>
+          <Link to="/about" className="block text-black" onClick={closeAllMenus}>About Us</Link>
+          <Link to="/blogs" className="block text-black" onClick={closeAllMenus}>Blog</Link>
+          <Link to="/contact" className="block text-black" onClick={closeAllMenus}>Contact</Link>
           {userInfo && userInfo.isSeller && userInfo.sellerApproved && (
-            <Link to="/upload-art" className="block hover:text-black" onClick={closeAllMenus}>Upload Art</Link>
+            <Link to="/upload-art" className="block text-black" onClick={closeAllMenus}>Upload Art</Link>
           )}
         </nav>
       )}
 
       {/* SEARCH MOBILE */}
-      <div className="md:hidden border-t border-gray-100 bg-gray-50 py-3">
+      <div className="md:hidden  bg-yellow-300 py-1">
         <div className="max-w-3xl mx-auto px-4">
           <SearchBox />
         </div>

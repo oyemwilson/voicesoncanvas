@@ -85,7 +85,7 @@ const SearchBox = () => {
     <div ref={containerRef} className="relative max-w-md mx-auto">
       <form
         onSubmit={submitHandler}
-        className="flex items-center bg-[#fffbe6] border-b border-gray-400"
+        className="flex items-center bg-yellow-300 border-b border-black"
       >
         {/* Search Icon */}
         <button type="submit" className="p-2 hover:text-blue-600 transition">
@@ -93,18 +93,19 @@ const SearchBox = () => {
         </button>
 
         {/* Underline input */}
-        <input
-          type="text"
-          name="q"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          onFocus={() => results.length > 0 && setShowSuggestions(true)}
-          placeholder="Type your search..."
-          className="flex-grow py-2 px-3 bg-transparent focus:outline-none"
-          aria-autocomplete="list"
-          aria-expanded={showSuggestions}
-          aria-haspopup="listbox"
-        />
+<input
+  type="text"
+  name="q"
+  value={keyword}
+  onChange={(e) => setKeyword(e.target.value)}
+  onFocus={() => results.length > 0 && setShowSuggestions(true)}
+  placeholder="Type your search..."
+  className="flex-grow py-2 px-3 bg-transparent text-black placeholder-black focus:outline-none"
+  aria-autocomplete="list"
+  aria-expanded={showSuggestions}
+  aria-haspopup="listbox"
+/>
+
       </form>
 
       {/* Suggestions box */}
