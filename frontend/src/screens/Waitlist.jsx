@@ -28,7 +28,7 @@ export default function ArtSellerLanding() {
         </h1>
 
         <p className="text-xl text-gray-600 max-w-2xl mb-10">
-          VoicesOnCanvas is built for creators. Open your no‑code storefront, get secure payouts , ship with live rates, and track performance with seller analytics.
+          VoicesOnCanvas is built for creators. Open your no‑code storefront, get secure payouts, ship with live rates, and track performance with seller analytics.
         </p>
 
         <div className="relative md:h-[300px] h-[200px] w-[90vw] sm:w-[650px] md:w-[800px] mb-10">
