@@ -31,6 +31,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://voicesoncanvas.onrender.com',
   'https://voicesoncanvas-g4rb.onrender.com',
+    'https://voicesoncanvas.africa',
+  'https://www.voicesoncanvas.africa'
   // Add your actual frontend domain here
 ];
 
@@ -138,18 +140,23 @@ app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
 
-if (process.env.NODE_ENV === 'production' && process.env.ENABLE_SELF_PING === 'true') {
-  const PING_INTERVAL = 14 * 60 * 1000; // 14 minutes
-  const SERVER_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
-  
-  setInterval(async () => {
-    try {
-      const fetch = (await import('node-fetch')).default;
-      const response = await fetch(`${SERVER_URL}/api/ping`);
-      const data = await response.json();
-      console.log('Self-ping successful:', data.timestamp);
-    } catch (error) {
-      console.error('Self-ping failed:', error.message);
-    }
-  }, PING_INTERVAL);
-}
+// ---- Self-ping: run ALWAYS ----
+const PING_INTERVAL = Number(process.env.PING_INTERVAL_MS) || 10 * 60 * 1000;
+
+// Prefer a public URL if you set one, else fall back to localhost
+const SERVER_URL =
+  process.env.BACKEND_URL ||
+  process.env.RENDER_EXTERNAL_URL ||      // Render sometimes provides this
+  `http://localhost:${PORT}`;
+
+setInterval(async () => {
+  try {
+    // Node 18+ has global fetch
+    const res = await fetch(`${SERVER_URL}/api/ping`);
+    if (!res.ok) throw new Error(String(res.status));
+    const data = await res.json();
+    console.log('Self-ping OK:', data.timestamp);
+  } catch (err) {
+    console.error('Self-ping failed:', err.message);
+  }
+}, PING_INTERVAL);

@@ -116,7 +116,7 @@ const Footer = () => {
 
           <div className="flex  mt-4 space-x-5 sm:mt-0">
             <a
-              href="https://facebook.com/yourpage"
+              href="#"
               className="text-black hover:text-black"
             >
               <Facebook size={20} />
@@ -124,7 +124,7 @@ const Footer = () => {
             </a>
 
             <a
-              href="https://twitter.com/yourhandle"
+              href="#"
               className="text-black hover:text-black"
             >
               <Twitter size={20} />
@@ -132,7 +132,7 @@ const Footer = () => {
             </a>
 
             <a
-              href="https://dribbble.com/yourprofile"
+              href="#"
               className="text-black hover:text-black"
             >
               <Dribbble size={20} />
