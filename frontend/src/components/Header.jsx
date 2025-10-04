@@ -119,7 +119,7 @@ const newSalesCount       = newSales.length;
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className="bg-white shadow-sm ">
       {/* TOP PROMO */}
 <div className="bg-yellow-300 text-yellow-900 text-sm py-0 px-4 flex justify-end items-center">
   {/* Left Aligned Content */}

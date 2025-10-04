@@ -10,30 +10,34 @@ export default function ArtSellerLanding() {
   return (
     <div className="min-h-screen bg-[#fffbe6]">
       {/* Minimal brand bar (no site-wide header/footer here) */}
-      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
-        <div className="flex items-center space-x-2">
+      <nav className="flex justify-center items-center p-6 max-w-7xl mx-auto">
+        <div className="flex items-center text-center space-x-2 flex justify-center">
 
-          <span className="text-xl font-bold text-gray-800">VoicesOnCanvas</span>
+          <img
+            src="/images/voclogo.png"
+            className="h-32 w-100"
+            alt="Voices on Canvas Logo"
+          />
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
+      <section className="max-w-7xl mx-auto px-6 py-16 pt-0 flex flex-col items-center text-center">
         <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
           Start selling your <span className="text-transparent bg-clip-text bg-yellow-500">art worldwide</span>
         </h1>
 
         <p className="text-xl text-gray-600 max-w-2xl mb-10">
-          VoicesOnCanvas is built for creators. Open your no‑code storefront, get secure payouts (Paystack/Stripe), ship with live rates, and track performance with seller analytics.
+          VoicesOnCanvas is built for creators. Open your no‑code storefront, get secure payouts , ship with live rates, and track performance with seller analytics.
         </p>
 
-              <div className="relative md:h-[300px] h-[200px] w-[90vw] sm:w-[650px] md:w-[800px] mb-10">
+        <div className="relative md:h-[300px] h-[200px] w-[90vw] sm:w-[650px] md:w-[800px] mb-10">
           <img
             src="/images/waitlist.webp"
             alt="Our Mission"
             className="rounded-xl object-cover w-full h-full shadow-lg"
           />
-        </div>  
+        </div>
 
         {/* CTA: Takes seller to the dedicated waitlist form route */}
         <div className="w-full max-w-md">
