@@ -15,7 +15,7 @@ export default function ArtSellerLanding() {
 
           <img
             src="/images/voclogo.png"
-            className="h-32 w-100"
+            className="h-32 "
             alt="Voices on Canvas Logo"
           />
         </div>

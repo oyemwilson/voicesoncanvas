@@ -11,9 +11,9 @@ const Meta = ({ title, description, keywords }) => {
 };
 
 Meta.defaultProps = {
-  title: 'Welcome To ProShop',
-  description: 'We sell the best products for cheap',
-  keywords: 'electronics, buy electronics, cheap electroincs',
+  title: 'Welcome To Voices on Canvas',
+  description: 'Discover, buy, and sell African art from emerging and established creators.',
+  keywords: 'african art, art, emerging artists, established artists, buy art, sell art',
 };
 
 export default Meta;
