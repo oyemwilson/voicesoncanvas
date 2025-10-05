@@ -87,7 +87,7 @@ export default function ArtSellerLanding() {
       </section>
 
       {/* Soft footer text, no site chrome */}
-      <div className="py-10 text-center text-gray-500 text-sm">Abuja → the world • © {new Date().getFullYear()} VoicesOnCanvas</div>
+      <div className="py-10 text-center text-gray-500 text-sm"> © {new Date().getFullYear()} VoicesOnCanvas</div>
     </div>
   );
 }
