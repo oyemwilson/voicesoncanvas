@@ -1,10 +1,45 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 // ---------- Transporter ----------
 const createTransporter = () => {
+  const provider =
+    process.env.EMAIL_PROVIDER ||
+    (process.env.RESEND_API_KEY ? 'resend' : 'smtp'); // auto-pick Resend if key exists
+
+  if (provider === 'resend') {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    // Adapter to mimic Nodemailer's `sendMail`
+    return {
+      async sendMail({ from, to, subject, text, html, replyTo, bcc }) {
+        // Resend accepts string or array for to/bcc; reply_to uses underscore
+        const { data, error } = await resend.emails.send({
+          from,
+          to,
+          subject,
+          text,
+          html,
+          bcc,
+          reply_to: replyTo,
+        });
+        if (error) {
+          // normalize error shape like nodemailer
+          const msg = error.message || 'Resend send failed';
+          const e = new Error(msg);
+          e.response = error;
+          throw e;
+        }
+        // Nodemailer usually returns { messageId }, return similar
+        return { messageId: data?.id || undefined, id: data?.id };
+      },
+    };
+  }
+
   if (process.env.EMAIL_SERVICE === 'gmail') {
+    // Gmail (SMTP) – good for local dev; blocked on Render free tier
     return nodemailer.createTransport({
       service: 'gmail',
       auth: { user: process.env.EMAIL_USERNAME, pass: process.env.EMAIL_PASSWORD },
