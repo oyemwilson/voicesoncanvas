@@ -1,5 +1,5 @@
 // src/pages/admin/OrderListScreen.js
-import { useState, useContext } from 'react';
+import { useState, useContext, useMemo, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import Message from '../../components/Message';
@@ -8,75 +8,234 @@ import { useGetOrdersQuery } from '../../slices/ordersApiSlice';
 import { CurrencyContext } from '../../components/CurrencyContext';
 
 const OrderListScreen = () => {
-  // Fetch all orders
+  // Fetch all orders (client-side sort + pagination)
   const { data: orders = [], isLoading, error } = useGetOrdersQuery();
 
-  // Local search state
+  // Search
   const [searchTerm, setSearchTerm] = useState('');
+
+  // --- NEW: sort
+  // options: '', 'paid', 'shipped', 'pending', 'not_paid'
+  const [sortBy, setSortBy] = useState('');
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   // Currency context
   const { currency, rates } = useContext(CurrencyContext);
   const symbols = { NGN: '₦', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
   const rate = rates[currency] || 1;
 
-  // Constants for pricing calculations (matching backend)
+  // Pricing constants
   const SERVICE_FEE_PERCENT = 0.05;
   const SHIPPING_FLAT_USD = 35;
 
-  // Function to calculate the correct total for display
   const calculateOrderTotal = (order) => {
-    // Items price in NGN (base currency from database)
-    const itemsPrice = parseFloat(order.itemsPrice);
-    
-    // Calculate service fee (5% of items)
+    const itemsPrice = parseFloat(order.itemsPrice || 0);
     const serviceFee = itemsPrice * SERVICE_FEE_PERCENT;
-    
-    // Calculate shipping in target currency
+
     let shippingPrice;
     if (currency === 'USD') {
       shippingPrice = SHIPPING_FLAT_USD;
     } else {
-      // Convert $35 USD to NGN first, then to target currency
-      const usdToNgnRate = 1 / rates['USD']; // 1 USD = how many NGN
-      const shippingInNgn = SHIPPING_FLAT_USD * usdToNgnRate; // $35 in NGN
-      shippingPrice = shippingInNgn * rate; // Convert NGN to target currency
+      const usdToNgnRate = 1 / (rates['USD'] || 1);
+      const shippingInNgn = SHIPPING_FLAT_USD * usdToNgnRate;
+      shippingPrice = shippingInNgn * rate;
     }
-    
-    // Tax price in NGN (from database)
-    const taxPrice = parseFloat(order.taxPrice);
-    
-    // Convert all prices to target currency
+
+    const taxPrice = parseFloat(order.taxPrice || 0);
+
     const itemsPriceLocal = itemsPrice * rate;
     const serviceFeeLocal = serviceFee * rate;
     const taxPriceLocal = taxPrice * rate;
-    
-    // Calculate total
-    const totalPrice = itemsPriceLocal + serviceFeeLocal + shippingPrice + taxPriceLocal;
-    
-    return totalPrice;
+
+    return itemsPriceLocal + serviceFeeLocal + shippingPrice + taxPriceLocal;
   };
 
-  // Filter orders by ID or user name
-  const filtered = orders.filter((order) => {
-    const term = searchTerm.toLowerCase();
+  // --- NEW: Normalize status for sorting
+  // buckets: 'paid' | 'shipped' | 'pending' | 'not_paid'
+  const getStatusBucket = (order) => {
+    const isDelivered = order.orderStatus === 'delivered';
+    const isShipped = order.orderStatus === 'shipped' || !!order.shippingDetails?.shippedAt;
+
+    // Paid/Not paid is independent of shipped/pending;
+    // but user wants to sort explicitly by each bucket.
+    if (sortBy === 'paid' || sortBy === 'not_paid') {
+      return order.isPaid ? 'paid' : 'not_paid';
+    }
+
+    // For shipped/pending, consider delivered as shipped (already dispatched)
+    if (isShipped || isDelivered) return 'shipped';
+    return 'pending';
+  };
+
+  // Search filter
+  const filtered = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return orders;
+    return orders.filter((order) => {
+      return (
+        order._id.toLowerCase().includes(term) ||
+        (order.user?.name || '').toLowerCase().includes(term)
+      );
+    });
+  }, [orders, searchTerm]);
+
+  // --- NEW: Sorting (selected bucket first, then newest)
+  const sorted = useMemo(() => {
+    if (!sortBy) {
+      // default sort: newest first
+      return [...filtered].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+    }
+
+    const preferred = sortBy; // 'paid' | 'shipped' | 'pending' | 'not_paid'
+    return [...filtered].sort((a, b) => {
+      const aBucket = getStatusBucket(a);
+      const bBucket = getStatusBucket(b);
+
+      // put preferred bucket first
+      const aRank = aBucket === preferred ? 0 : 1;
+      const bRank = bBucket === preferred ? 0 : 1;
+      if (aRank !== bRank) return aRank - bRank;
+
+      // within bucket: newest first
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  }, [filtered, sortBy]);
+
+  // Pagination derived from sorted results
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil((sorted?.length || 0) / PAGE_SIZE)),
+    [sorted, PAGE_SIZE]
+  );
+
+  // Reset page when search/sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortBy]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return sorted.slice(start, start + PAGE_SIZE);
+  }, [sorted, currentPage]);
+
+  // Page numbers (with ellipses)
+  const pageNumbers = useMemo(() => {
+    const maxBtns = 7;
+    if (totalPages <= maxBtns) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const s = new Set([1, 2, totalPages - 1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+    const sortedPages = [...s].filter(p => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+    const withDots = [];
+    for (let i = 0; i < sortedPages.length; i++) {
+      withDots.push(sortedPages[i]);
+      if (i < sortedPages.length - 1 && sortedPages[i + 1] - sortedPages[i] > 1) withDots.push(-1);
+    }
+    return withDots;
+  }, [currentPage, totalPages]);
+
+  const renderPagination = () => {
+    if (!sorted || sorted.length === 0) return null;
+    const showingFrom = (currentPage - 1) * PAGE_SIZE + 1;
+    const showingTo = Math.min(currentPage * PAGE_SIZE, sorted.length);
+
     return (
-      order._id.toLowerCase().includes(term) ||
-      (order.user?.name || '').toLowerCase().includes(term)
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="text-sm text-gray-600">
+          Showing {showingFrom}–{showingTo} of {sorted.length}
+          {searchTerm ? ' (filtered)' : ''}
+        </div>
+        <div className="flex items-center gap-1">
+          {/* <button
+            className="px-3 py-1 rounded-md border text-sm disabled:opacity-50"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+          >
+            First
+          </button> */}
+          <button
+            className="px-3 py-1 rounded-md border text-sm disabled:opacity-50"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            Prev
+          </button>
+
+          {pageNumbers.map((p, idx) =>
+            p === -1 ? (
+              <span key={`dots-${idx}`} className="px-2 text-gray-500 select-none">…</span>
+            ) : (
+              <button
+                key={p}
+                className={`px-3 py-1 rounded-md border text-sm ${
+                  p === currentPage ? 'bg-gray-900 text-white border-gray-900' : 'hover:bg-gray-100'
+                }`}
+                onClick={() => setCurrentPage(p)}
+              >
+                {p}
+              </button>
+            )
+          )}
+
+          <button
+            className="px-3 py-1 rounded-md border text-sm disabled:opacity-50"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+          {/* <button
+            className="px-3 py-1 rounded-md border text-sm disabled:opacity-50"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+          >
+            Last
+          </button> */}
+        </div>
+      </div>
     );
-  });
+  };
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-      {/* Header + Search */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 my-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orders</h1>
-        <input
-          type="text"
-          placeholder="Search by Order ID or User..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="border border-gray-300 rounded-md px-4 py-2 text-sm w-full sm:w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+      {/* Header: Title + Search + Sort */}
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 my-6">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orders</h1>
+          <span className="text-sm text-gray-500">Page {currentPage} of {totalPages}</span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <input
+            type="text"
+            placeholder="Search by Order ID or User..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="border border-gray-300 rounded-md px-4 py-2 text-sm w-full sm:w-72 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          {/* --- NEW: Sort select --- */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Sort orders by status"
+          >
+            <option value="">Sort: Newest first (default)</option>
+            <option value="paid">Paid first</option>
+            <option value="shipped">Shipped first</option>
+            <option value="pending">Pending Shipment first</option>
+            <option value="not_paid">Not Paid first</option>
+          </select>
+        </div>
       </div>
 
       {isLoading ? (
@@ -103,13 +262,12 @@ const OrderListScreen = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filtered.length > 0 ? (
-                    filtered.map((order) => {
+                  {paginated.length > 0 ? (
+                    paginated.map((order) => {
                       const isDelivered = order.orderStatus === 'delivered';
                       const isShipped   = order.orderStatus === 'shipped';
-                      // Calculate the correct total using new pricing logic
                       const correctTotal = calculateOrderTotal(order);
-                      
+
                       return (
                         <tr key={order._id} className="hover:bg-gray-50 transition-colors duration-150">
                           <td className="py-3 px-4 font-mono text-xs text-gray-700">{order._id}</td>
@@ -121,7 +279,7 @@ const OrderListScreen = () => {
                           <td className="py-3 px-4 text-center">
                             {order.isPaid ? (
                               <span className="text-green-600 font-medium">
-                                {order.paidAt.substring(0, 10)}
+                                {order.paidAt?.substring(0, 10)}
                               </span>
                             ) : (
                               <FaTimes className="text-red-500 mx-auto" />
@@ -160,7 +318,7 @@ const OrderListScreen = () => {
                   ) : (
                     <tr>
                       <td colSpan={7} className="py-4 px-4 text-center text-gray-500">
-                        No orders match your search.
+                        No orders {searchTerm ? 'match your search' : 'found'}.
                       </td>
                     </tr>
                   )}
@@ -171,13 +329,12 @@ const OrderListScreen = () => {
 
           {/* Mobile Cards */}
           <div className="lg:hidden grid gap-4">
-            {filtered.length > 0 ? (
-              filtered.map((order) => {
+            {paginated.length > 0 ? (
+              paginated.map((order) => {
                 const isDelivered = order.orderStatus === 'delivered';
                 const isShipped   = order.orderStatus === 'shipped';
-                // Calculate the correct total using new pricing logic
                 const correctTotal = calculateOrderTotal(order);
-                
+
                 return (
                   <div
                     key={order._id}
@@ -223,7 +380,7 @@ const OrderListScreen = () => {
                       <p className="text-sm text-gray-500">Paid</p>
                       {order.isPaid ? (
                         <span className="text-xs font-medium bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                          {order.paidAt.substring(0, 10)}
+                          {order.paidAt?.substring(0, 10)}
                         </span>
                       ) : (
                         <span className="text-xs font-medium bg-red-100 text-red-800 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -252,9 +409,14 @@ const OrderListScreen = () => {
                 );
               })
             ) : (
-              <p className="text-center text-gray-500">No orders match your search.</p>
+              <p className="text-center text-gray-500">
+                No orders {searchTerm ? 'match your search' : 'found'}.
+              </p>
             )}
           </div>
+
+          {/* Pagination */}
+          {renderPagination()}
         </>
       )}
     </div>
