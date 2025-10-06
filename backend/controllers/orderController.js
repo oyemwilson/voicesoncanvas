@@ -27,8 +27,8 @@ const addOrderItems = asyncHandler(async (req, res) => {
   const itemsFromDB = await Product.find({
     _id: { $in: orderItems.map(x => x._id) }
   }).select('price user seller'); // Only select needed fields
-    console.log(`2. Product find took: ${Date.now() - lapTime}ms`);
-  lapTime = Date.now();
+  
+
 
   const dbOrderItems = orderItems.map(item => {
     const prod = itemsFromDB.find(p => p._id.toString() === item._id);
@@ -40,8 +40,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
       _id: undefined
     };
   });
-    console.log(`3. Price calculation took: ${Date.now() - lapTime}ms`);
-  lapTime = Date.now();
+
 
   // 2️⃣ Calculate totals
   const { itemsPrice, serviceFee, taxPrice, shippingPrice, totalPrice } = calcPrices(dbOrderItems);
@@ -63,8 +62,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
   });
 
   const createdOrder = await order.save();
-    console.log(`4. Order save took: ${Date.now() - lapTime}ms`);
-  lapTime = Date.now();
+
 
   // 4️⃣ ✅ IMPROVED: Send email asynchronously without waiting
   sendPaymentReminderEmail(req.user._id, createdOrder._id.toString());
