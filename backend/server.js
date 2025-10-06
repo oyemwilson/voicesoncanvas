@@ -14,6 +14,15 @@ import blogRoutes    from './routes/blogRoutes.js';
 
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
+if (process.env.NODE_ENV === 'production') {
+  const noop = () => {};
+  console.log = noop;
+  console.debug = noop;
+  console.info = noop;
+  console.trace = noop;
+  // keep warnings/errors:
+  // console.warn and console.error remain
+}
 // Load environment variables
 dotenv.config();
 // Connect to database

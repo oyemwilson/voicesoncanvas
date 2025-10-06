@@ -37,7 +37,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "remove-logs": "replace 'console\\.log\\([^)]*\\);?' '' ./ -r --include='*.js,*.jsx,*.ts,*.tsx' --exclude='node_modules,build,dist,.next'"
+
   },
   "eslintConfig": {
     "extends": [
