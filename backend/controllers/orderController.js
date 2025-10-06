@@ -11,8 +11,7 @@ import { sendTemplateEmail, sendNotificationEmail } from '../utils/sendEmail.js'
 // @access  Private
 const addOrderItems = asyncHandler(async (req, res) => {
 
-    const startTime = Date.now();
-  let lapTime = startTime;
+
 
     console.log('1. Function started');
 
@@ -91,7 +90,7 @@ const sendPaymentReminderEmail = async (userId, orderId) => {
     console.error('❌ Failed to send payment reminder:', err);
     // Don't throw - this shouldn't affect the order creation
   }
-    console.log(`✅ TOTAL ORDER CREATION TIME: ${Date.now() - startTime}ms`);
+    // console.log(`✅ TOTAL ORDER CREATION TIME: ${Date.now() - startTime}ms`);
 };
 // @desc    Get logged in user orders
 // @route   GET /api/orders/myorders
