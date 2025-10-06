@@ -376,7 +376,7 @@ const newSalesCount       = newSales.length;
       )}
 
       {/* SEARCH MOBILE */}
-      <div className="md:hidden  bg-yellow-300 py-1">
+      <div className="md:hidden  bg-yellow-300 py-1 pb-2">
         <div className="max-w-3xl mx-auto px-4">
           <SearchBox />
         </div>
