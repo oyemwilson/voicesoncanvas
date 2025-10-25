@@ -134,7 +134,7 @@ const newSalesCount       = newSales.length;
       id="currency"
       value={currency}
       onChange={(e) => setCurrency(e.target.value)}
-      className="border rounded px-2 py-1 text-sm bg-[#ffefc0]  text-gray-800 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+      className="border rounded px-0 py-0 text-sm bg-[#ffefc0]  text-gray-800 focus:outline-none focus:ring-1 focus:ring-yellow-500"
     >
       <option value="NGN">₦ NGN</option>
       <option value="USD">$ USD</option>
@@ -377,7 +377,7 @@ const newSalesCount       = newSales.length;
 
       {/* SEARCH MOBILE */}
       <div className="md:hidden  bg-yellow-300 py-1 pb-2">
-        <div className="max-w-3xl mx-auto px-4">
+        <div className="max-w-3xl mx-auto px-4 py-2">
           <SearchBox />
         </div>
       </div>
