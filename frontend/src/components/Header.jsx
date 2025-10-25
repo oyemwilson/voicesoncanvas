@@ -344,7 +344,7 @@ const newSalesCount       = newSales.length;
       </div>
 
       {/* NAV LINKS */}
-      <div className="hidden md:flex justify-center py-1  bg-yellow-300 ">
+      <div className="hidden md:flex justify-center py-2  bg-yellow-300 ">
         <nav className="flex items-center space-x-8 py-2 text-sm font-medium text-gray-700">
           <Link to="/" className="hover:text-black" onClick={closeAllMenus}>Home</Link>
           <Link to="/shop" className="hover:text-black" onClick={closeAllMenus}>Shop</Link>

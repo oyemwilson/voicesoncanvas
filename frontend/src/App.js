@@ -28,7 +28,7 @@ const App = () => {
     <ScrollToTop />
       <ToastContainer />
       <Header />
-      <main className='py-3  bg-white'>
+      <main className=" py-2 bg-white">
         <div className=" container mx-auto px-4">
           <Outlet />
         </div>
