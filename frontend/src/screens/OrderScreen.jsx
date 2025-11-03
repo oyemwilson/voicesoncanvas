@@ -32,7 +32,7 @@ const OrderScreen = () => {
   // % service fee
   const SERVICE_FEE_PERCENT = 0.05;
   // flat $35 shipping (will be converted by your rate)
-  const SHIPPING_FLAT_USD = 35;
+  const SHIPPING_FLAT_USD = 0.05;
 
   const { id: orderId } = useParams();
   const { userInfo } = useSelector((state) => state.auth);

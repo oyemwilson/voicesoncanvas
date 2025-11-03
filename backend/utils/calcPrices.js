@@ -16,7 +16,7 @@ export function calcPrices(orderItems) {
   );
 
   // Fixed shipping price of $35
-  const shippingPrice = 35;
+  const shippingPrice = 1;
 
   // Calculate 5% service fee on items price
   const serviceFee = 0.5 * itemsPrice;
